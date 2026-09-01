@@ -196,6 +196,30 @@ including the case where no webhook secret is configured at all.
 `PaymentRecorder` is the single place a payment is marked received, keyed on the gateway's payment id
 so replays and retries are safe. Verified: a replayed webhook returns 200 and creates no second row.
 
+### Matching a payment to its transaction
+
+`locate()` tries, in order: **payment id** → **our reference** → **order id**.
+
+The order id matters more than it looks. A live Razorpay delivery arrived with
+`notes.reference = null`, matched nothing, and was logged and discarded while the donor's transaction
+sat pending on a payment that had actually succeeded:
+
+```
+Payment could not be matched to a transaction
+{"gateway":"razorpay","payment_id":"pay_TWmDGUvRWChWEV","reference":null}
+```
+
+Two causes, both fixed:
+
+- **Order notes never reach the payment entity.** The reference was set in the *order's* notes, but
+  `parseWebhook` reads the *payment's* notes, and the Checkout options were overwriting those with
+  only an address. The reference is now included there too.
+- **`locate()` never tried the order id**, which is the one identifier both sides always hold — we
+  store it when the order is created and the gateway echoes it on every payment. Matching on notes
+  alone silently drops real payments.
+
+The order-id match is also scoped by gateway, so ids cannot collide between providers.
+
 Duplicate-event handling differs per gateway and is deliberate:
 
 - **Razorpay** fires `payment.captured` *and* `subscription.charged` for one subscription charge —

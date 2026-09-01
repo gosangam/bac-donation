@@ -167,6 +167,21 @@ class PaymentRecorder
             }
         }
 
+        // The order id is the only identifier both sides are guaranteed to hold:
+        // we store it when the order is created, and the gateway echoes it on the
+        // payment. Notes can be absent or overwritten, so matching on them alone
+        // silently drops real payments.
+        if ($event->orderId) {
+            $byOrder = Transaction::where('gateway', $gateway)
+                ->where('gateway_order_id', $event->orderId)
+                ->lockForUpdate()
+                ->first();
+
+            if ($byOrder) {
+                return $byOrder;
+            }
+        }
+
         return null;
     }
 

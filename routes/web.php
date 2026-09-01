@@ -94,6 +94,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 // ── Webhooks ────────────────────────────────────────────────────────────────
 // Outside the auth and CSRF groups by necessity: gateways have no session and
 // no token. Authenticity comes from the signature check in each driver instead.
+// Gateways have no session and no CSRF token; authenticity comes from the
+// signature check in each driver. CSRF is excluded in bootstrap/app.php.
+//
+// Dropping StartSession here as well looks tempting — every delivery writes a
+// session row — but Laravel 13's PreventRequestForgery still runs in the 'web'
+// group and reads the session, so removing it throws "Session store not set on
+// request". Doing it properly means registering this route outside the group.
 Route::post('/webhooks/{gateway}', [WebhookController::class, 'handle'])
-    ->name('webhooks')
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+    ->name('webhooks');

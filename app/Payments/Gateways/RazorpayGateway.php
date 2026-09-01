@@ -121,7 +121,13 @@ class RazorpayGateway implements PaymentGateway
                 'email' => $transaction->donor_email,
                 'contact' => $transaction->donor_phone,
             ],
-            'notes' => ['address' => $transaction->donor_address],
+            // Order notes do not reach the payment entity — these do. Without the
+            // reference here the webhook arrives with notes.reference = null and
+            // the payment cannot be tied back to its transaction.
+            'notes' => [
+                'reference' => $transaction->reference,
+                'address' => $transaction->donor_address,
+            ],
             'theme' => ['color' => config('payments.org.brand_color')],
         ], $extra);
     }
