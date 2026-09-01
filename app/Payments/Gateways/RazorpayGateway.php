@@ -126,6 +126,105 @@ class RazorpayGateway implements PaymentGateway
         ], $extra);
     }
 
+    public function fetchStatus(Transaction $transaction): ?WebhookEvent
+    {
+        // Best case: we already know the payment id, so ask about it directly.
+        if ($transaction->gateway_payment_id) {
+            $payment = $this->http()->get(self::API.'/payments/'.$transaction->gateway_payment_id);
+
+            return $payment->successful() ? $this->eventFromPayment($payment->json()) : null;
+        }
+
+        $id = $transaction->gateway_order_id;
+
+        if (blank($id)) {
+            return null;   // never reached the gateway; nothing to ask about
+        }
+
+        // A subscription stores its sub_… id here, not an order id, and its
+        // payments hang off invoices rather than the subscription itself.
+        if (str_starts_with($id, 'sub_')) {
+            return $this->statusFromSubscription($id);
+        }
+
+        $payments = $this->http()->get(self::API."/orders/{$id}/payments");
+
+        if (! $payments->successful()) {
+            return null;
+        }
+
+        return $this->pickPayment($payments->json()['items'] ?? []);
+    }
+
+    private function statusFromSubscription(string $subscriptionId): ?WebhookEvent
+    {
+        $invoices = $this->http()->get(self::API.'/invoices', [
+            'subscription_id' => $subscriptionId,
+            'count' => 10,
+        ]);
+
+        if (! $invoices->successful()) {
+            return null;
+        }
+
+        foreach ($invoices->json()['items'] ?? [] as $invoice) {
+            if (($invoice['status'] ?? '') === 'paid' && filled($invoice['payment_id'] ?? null)) {
+                $payment = $this->http()->get(self::API.'/payments/'.$invoice['payment_id']);
+
+                if ($payment->successful()) {
+                    return $this->eventFromPayment($payment->json());
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** @param array<int, array<string, mixed>> $payments */
+    private function pickPayment(array $payments): ?WebhookEvent
+    {
+        // Captured beats authorised: only a capture is money we hold.
+        foreach (['captured', 'authorized', 'failed'] as $status) {
+            foreach ($payments as $payment) {
+                if (($payment['status'] ?? '') === $status) {
+                    return $this->eventFromPayment($payment);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function eventFromPayment(array $payment): ?WebhookEvent
+    {
+        $status = $payment['status'] ?? '';
+
+        // 'authorized' is money held but not taken; treating it as received
+        // would issue a receipt for a payment that can still fall through.
+        $type = match ($status) {
+            'captured' => 'payment_succeeded',
+            'failed' => 'payment_failed',
+            default => null,
+        };
+
+        if (! $type) {
+            return null;
+        }
+
+        return new WebhookEvent(
+            type: $type,
+            reference: $payment['notes']['reference'] ?? null,
+            paymentId: $payment['id'] ?? null,
+            orderId: $payment['order_id'] ?? null,
+            subscriptionId: $payment['invoice_id'] ?? null,
+            amount: $payment['amount'] ?? null,
+            currency: $payment['currency'] ?? null,
+            method: $this->describeMethod($payment),
+            status: $status,
+            raw: ['source' => 'status-poll', 'payment' => $payment],
+        );
+    }
+
     public function verifyWebhook(Request $request): bool
     {
         $secret = config('payments.razorpay.webhook_secret');

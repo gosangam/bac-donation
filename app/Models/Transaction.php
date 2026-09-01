@@ -17,6 +17,7 @@ class Transaction extends Model
         'gateway_payload' => 'array',
         'paid_at' => 'datetime',
         'receipt_emailed_at' => 'datetime',
+        'gateway_synced_at' => 'datetime',
     ];
 
     public function user()

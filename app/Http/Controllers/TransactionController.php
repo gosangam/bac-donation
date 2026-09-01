@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Services\ReceiptRenderer;
+use App\Services\TransactionReconciler;
 use App\Support\GuestCheckout;
 use Illuminate\Http\Request;
 
@@ -27,9 +28,14 @@ class TransactionController extends Controller
         ]);
     }
 
-    public function show(Request $request, Transaction $transaction)
+    public function show(Request $request, Transaction $transaction, TransactionReconciler $reconciler)
     {
         abort_unless(GuestCheckout::authorises($request, $transaction), 403);
+
+        // Reloading the page asks the gateway directly, so a missed or delayed
+        // webhook does not leave a donor staring at "pending". No-ops for
+        // anything already settled, and throttled per transaction.
+        $transaction = $reconciler->reconcile($transaction);
 
         return view('transactions.show', ['txn' => $transaction->load('subscription.plan')]);
     }

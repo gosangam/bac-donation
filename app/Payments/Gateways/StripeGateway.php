@@ -127,6 +127,51 @@ class StripeGateway implements PaymentGateway
         return CheckoutIntent::redirect($session['url']);
     }
 
+    public function fetchStatus(Transaction $transaction): ?WebhookEvent
+    {
+        $sessionId = $transaction->gateway_order_id;
+
+        if (blank($sessionId)) {
+            return null;
+        }
+
+        $response = $this->http()->get(self::API.'/checkout/sessions/'.$sessionId);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $session = $response->json();
+        $paymentStatus = $session['payment_status'] ?? '';
+
+        if ($paymentStatus === 'paid') {
+            return new WebhookEvent(
+                type: 'payment_succeeded',
+                reference: $session['client_reference_id'] ?? null,
+                paymentId: $session['payment_intent'] ?? $session['id'] ?? null,
+                orderId: $session['id'] ?? null,
+                subscriptionId: $session['subscription'] ?? null,
+                amount: $session['amount_total'] ?? null,
+                currency: strtoupper((string) ($session['currency'] ?? '')),
+                method: 'Card (Stripe)',
+                status: 'paid',
+                raw: ['source' => 'status-poll', 'session' => $session],
+            );
+        }
+
+        // A session the donor abandoned expires rather than failing outright.
+        if (($session['status'] ?? '') === 'expired') {
+            return new WebhookEvent(
+                type: 'payment_failed',
+                reference: $session['client_reference_id'] ?? null,
+                paymentId: $session['payment_intent'] ?? null,
+                raw: ['source' => 'status-poll', 'session' => $session],
+            );
+        }
+
+        return null;   // still open, donor may yet complete it
+    }
+
     public function verifyWebhook(Request $request): bool
     {
         $secret = config('payments.stripe.webhook_secret');

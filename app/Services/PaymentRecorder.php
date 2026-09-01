@@ -70,6 +70,61 @@ class PaymentRecorder
         });
     }
 
+    /**
+     * Apply an event to a transaction we already hold.
+     *
+     * Used by status polling, where the row is known and the gateway's response
+     * may carry no reference of ours to look it up by. Going through
+     * recordSuccess() there would risk matching nothing and creating a duplicate.
+     */
+    public function applyTo(Transaction $transaction, string $gateway, WebhookEvent $event): Transaction
+    {
+        if ($event->type === 'payment_failed') {
+            return $this->recordFailureFor($transaction, $event);
+        }
+
+        return DB::transaction(function () use ($transaction, $gateway, $event) {
+            if ($transaction->isPaid()) {
+                return $transaction;   // already recorded; polling changes nothing
+            }
+
+            $transaction->fill(array_filter([
+                'gateway_payment_id' => $event->paymentId,
+                'gateway_order_id' => $event->orderId ?: $transaction->gateway_order_id,
+                'method' => $event->method,
+                'amount' => $event->amount ?: $transaction->amount,
+                'currency' => $event->currency ?: $transaction->currency,
+                'gateway_payload' => $event->raw,
+            ]));
+
+            $transaction->status = 'paid';
+            $transaction->paid_at = now();
+            $transaction->save();
+
+            $transaction->assignReceiptNumber();
+
+            $this->activateSubscription($transaction, $gateway, $event);
+            $this->linkDonorAccount($transaction);
+            $this->emailReceipt($transaction);
+
+            return $transaction->fresh();
+        });
+    }
+
+    private function recordFailureFor(Transaction $transaction, WebhookEvent $event): Transaction
+    {
+        if ($transaction->isPaid()) {
+            return $transaction;   // never walk back a confirmed payment
+        }
+
+        $transaction->update([
+            'status' => 'failed',
+            'gateway_payload' => $event->raw,
+        ]);
+
+        return $transaction;
+    }
+
     public function recordFailure(string $gateway, WebhookEvent $event): ?Transaction
     {
         $transaction = $this->locate($gateway, $event);

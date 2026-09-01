@@ -33,6 +33,16 @@ interface PaymentGateway
     public function startSubscription(Transaction $transaction, Plan $plan): CheckoutIntent;
 
     /**
+     * Ask the gateway what it currently thinks of this transaction.
+     *
+     * Returns null when there is nothing conclusive to report — still pending, or
+     * nothing to look it up by. A returned event is fed to PaymentRecorder, the
+     * same path webhooks take, so a payment discovered this way is recorded once
+     * and gets its receipt exactly like any other.
+     */
+    public function fetchStatus(Transaction $transaction): ?WebhookEvent;
+
+    /**
      * Verify authenticity. Implementations must fail closed: anything they cannot
      * positively verify is rejected, because this endpoint marks money received.
      */

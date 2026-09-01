@@ -152,6 +152,33 @@ INR with Indian grouping (₹1,50,000) rather than Western.
 - `/transactions/{t}/receipt` returns 404 for a payment that has not completed. A receipt is proof
   money was received; issuing one for a pending payment would be a false document.
 
+## Refreshing checks with the gateway
+
+Webhooks are the primary path, but they get missed, delayed, or blocked by a misconfigured endpoint —
+and a donor who has paid should not be staring at "pending" because a POST went astray. So loading
+`/transactions/{id}` asks the gateway directly (`TransactionReconciler`).
+
+| Gateway | Looked up via |
+| --- | --- |
+| Razorpay | `GET /payments/{id}` if known, else `GET /orders/{id}/payments`; a subscription's charge is found through `GET /invoices?subscription_id=` |
+| Stripe | `GET /checkout/sessions/{id}` — `payment_status: paid`, or `status: expired` for an abandoned session |
+| PayPal | `GET /v2/checkout/orders/{id}`, or for a subscription `GET /v1/billing/subscriptions/{id}/transactions` |
+
+The result goes through `PaymentRecorder::applyTo()` — the same recording path webhooks use — so a
+payment discovered this way gets its receipt number, receipt email and guest-account linking exactly
+once, and a webhook arriving afterwards changes nothing.
+
+Guard rails, because this runs on a public pageview:
+
+- **Settled transactions are never polled.** Status can no longer change, so asking would spend an API
+  call per pageview for nothing.
+- **Throttled to one call per 15s per transaction**, so holding refresh is not a burst of API calls.
+- **Given up on after 72 hours.** A pending row that old is not going to settle.
+- **`authorized` is not treated as paid.** Razorpay holding money is not money taken, and receipting
+  it would document a payment that can still fall through.
+- **A gateway outage cannot break the page.** The error is recorded on the row, the donor sees the last
+  known status with a note that it may be stale, and there is a "Check again" button.
+
 ## Webhooks
 
 `POST /webhooks/{razorpay|stripe|paypal}` — outside the CSRF group by necessity (gateways have no

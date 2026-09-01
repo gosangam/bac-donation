@@ -60,10 +60,25 @@
           <a href="{{ route('transactions.receipt.preview', $txn) }}" target="_blank"
              class="text-sm text-slate-600 hover:text-slate-900 underline">Preview</a>
         @else
-          <p class="text-sm text-slate-500">
-            A receipt is issued once the payment clears. If you have paid, this usually updates within a
-            minute of the provider confirming.
-          </p>
+          <div class="text-sm text-slate-500">
+            <p>
+              A receipt is issued once the payment clears. We checked with
+              {{ $txn->gateway_label }}
+              @if ($txn->gateway_synced_at) {{ $txn->gateway_synced_at->diffForHumans() }} @endif
+              and it has not confirmed this payment yet.
+            </p>
+            @if ($txn->gateway_sync_error)
+              <p class="mt-2 text-amber-700">
+                We couldn't reach {{ $txn->gateway_label }} just now, so this may be out of date.
+              </p>
+            @endif
+            <div class="mt-3">
+              <a href="{{ route('transactions.show', $txn) }}"
+                 class="inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Check again
+              </a>
+            </div>
+          </div>
         @endif
       </div>
     </div>

@@ -179,6 +179,113 @@ class PayPalGateway implements PaymentGateway
         throw new \RuntimeException('PayPal returned no approval link: '.json_encode($resource));
     }
 
+    public function fetchStatus(Transaction $transaction): ?WebhookEvent
+    {
+        $id = $transaction->gateway_order_id;
+
+        if (blank($id)) {
+            return null;
+        }
+
+        // Subscription ids start with I-; orders do not.
+        return str_starts_with($id, 'I-')
+            ? $this->statusFromSubscription($id)
+            : $this->statusFromOrder($id);
+    }
+
+    private function statusFromOrder(string $orderId): ?WebhookEvent
+    {
+        $response = $this->http()->get($this->base()."/v2/checkout/orders/{$orderId}");
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $order = $response->json();
+        $capture = $order['purchase_units'][0]['payments']['captures'][0] ?? null;
+
+        // APPROVED means the donor agreed but nothing was captured, so no money
+        // has moved and there is nothing to receipt yet.
+        if (($order['status'] ?? '') !== 'COMPLETED' || ! $capture) {
+            return null;
+        }
+
+        $currency = $capture['amount']['currency_code'] ?? 'USD';
+
+        return new WebhookEvent(
+            type: 'payment_succeeded',
+            reference: $capture['invoice_id'] ?? $capture['custom_id'] ?? null,
+            paymentId: $capture['id'] ?? null,
+            orderId: $orderId,
+            amount: Money::toMinor((float) ($capture['amount']['value'] ?? 0), $currency),
+            currency: $currency,
+            method: 'PayPal',
+            status: 'paid',
+            raw: ['source' => 'status-poll', 'order' => $order],
+        );
+    }
+
+    private function statusFromSubscription(string $subscriptionId): ?WebhookEvent
+    {
+        $response = $this->http()->get($this->base()."/v1/billing/subscriptions/{$subscriptionId}");
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $subscription = $response->json();
+        $status = $subscription['status'] ?? '';
+
+        if (in_array($status, ['CANCELLED', 'SUSPENDED', 'EXPIRED'], true)) {
+            return new WebhookEvent(
+                type: 'subscription_cancelled',
+                subscriptionId: $subscriptionId,
+                raw: ['source' => 'status-poll', 'subscription' => $subscription],
+            );
+        }
+
+        if ($status !== 'ACTIVE') {
+            return null;
+        }
+
+        // The subscription object's last_payment carries no transaction id, and
+        // inventing one would let the real webhook look like a different payment
+        // and issue a second receipt. Ask for the actual transactions instead.
+        $transactions = $this->http()->get(
+            $this->base()."/v1/billing/subscriptions/{$subscriptionId}/transactions",
+            [
+                'start_time' => $subscription['create_time'] ?? now()->subYear()->toIso8601ZuluString(),
+                'end_time' => now()->addMinute()->toIso8601ZuluString(),
+            ]
+        );
+
+        if (! $transactions->successful()) {
+            return null;
+        }
+
+        foreach ($transactions->json()['transactions'] ?? [] as $txn) {
+            if (($txn['status'] ?? '') !== 'COMPLETED') {
+                continue;
+            }
+
+            $currency = $txn['amount_with_breakdown']['gross_amount']['currency_code'] ?? 'USD';
+            $value = $txn['amount_with_breakdown']['gross_amount']['value'] ?? 0;
+
+            return new WebhookEvent(
+                type: 'payment_succeeded',
+                paymentId: $txn['id'] ?? null,
+                subscriptionId: $subscriptionId,
+                amount: Money::toMinor((float) $value, $currency),
+                currency: $currency,
+                method: 'PayPal',
+                status: 'paid',
+                raw: ['source' => 'status-poll', 'transaction' => $txn],
+            );
+        }
+
+        return null;
+    }
+
     /**
      * PayPal signs with RSA over a CRC32 of the body, not an HMAC, so there is
      * nothing to recompute locally — the signature is posted back to PayPal to
