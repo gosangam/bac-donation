@@ -10,19 +10,20 @@
   <div class="space-y-4 mb-8">
     @forelse ($plans as $plan)
       <details class="bg-white rounded-xl border border-slate-200">
-        <summary class="px-5 py-4 cursor-pointer flex items-center justify-between gap-4">
-          <div>
+        <summary class="px-4 sm:px-5 py-4 cursor-pointer flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <div class="min-w-0">
             <span class="font-semibold text-slate-900">{{ $plan->name }}</span>
-            <span class="text-sm text-slate-500 ml-2">{{ $plan->amount_formatted }} · {{ $plan->cadence }}</span>
+            <span class="text-sm text-slate-500 sm:ml-2 block sm:inline">{{ $plan->amount_formatted }} · {{ $plan->cadence }}</span>
           </div>
-          <div class="flex items-center gap-2 text-xs">
+          {{-- Wraps rather than pushing the row past the viewport on a phone. --}}
+          <div class="flex flex-wrap items-center gap-2 text-xs">
             @foreach (['razorpay', 'stripe', 'paypal'] as $g)
               <span class="px-2 py-0.5 rounded {{ $plan->gatewayPlanId($g) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400' }}">{{ $g }}</span>
             @endforeach
             @include('partials.status-badge', ['status' => $plan->is_active ? 'active' : 'cancelled'])
           </div>
         </summary>
-        <form method="POST" action="{{ route('admin.plans.update', $plan) }}" class="px-5 pb-5 pt-2 border-t border-slate-100">
+        <form method="POST" action="{{ route('admin.plans.update', $plan) }}" class="px-4 sm:px-5 pb-5 pt-2 border-t border-slate-100">
           @csrf @method('PUT')
           @include('admin.partials.plan-fields', ['plan' => $plan])
           <button class="mt-4 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium">Save changes</button>

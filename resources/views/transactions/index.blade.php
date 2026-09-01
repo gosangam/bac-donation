@@ -27,7 +27,40 @@
     @endif
   </form>
 
-  <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+  {{-- Cards on a phone: a horizontally scrolled table hides the amount, status
+       and receipt link, which are the only things a donor came here for. --}}
+  <div class="sm:hidden space-y-3">
+    @forelse ($transactions as $txn)
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
+            <div class="text-xs text-slate-500 mt-0.5">
+              {{ $txn->created_at->format('d M Y') }} ·
+              {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-off' }}
+            </div>
+          </div>
+          @include('partials.status-badge', ['status' => $txn->status])
+        </div>
+        <div class="text-xs text-slate-500 mt-2 break-all">
+          {{ $txn->receipt_no ?? 'Receipt issued once paid' }} · {{ $txn->method ?? $txn->gateway_label }}
+        </div>
+        <div class="flex items-center gap-4 mt-3 text-sm">
+          <a href="{{ route('transactions.show', $txn) }}" class="text-slate-600 underline">View</a>
+          @if ($txn->isPaid())
+            <a href="{{ route('transactions.receipt', $txn) }}" class="text-slate-900 font-medium underline">Download PDF</a>
+          @endif
+        </div>
+      </div>
+    @empty
+      <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+        No transactions yet.
+        <a href="{{ route('checkout.choose') }}" class="text-slate-900 font-medium hover:underline">Make a donation</a>.
+      </div>
+    @endforelse
+  </div>
+
+  <div class="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-slate-50 text-slate-600">

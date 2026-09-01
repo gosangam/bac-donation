@@ -17,7 +17,7 @@
           <div class="text-sm text-slate-500 mt-1">PAN {{ $donor->pan }}</div>
         @endif
       </div>
-      <div class="text-right">
+      <div class="sm:text-right">
         @forelse ($totals as $total)
           <div class="text-xl font-semibold text-slate-900">
             {{ \App\Support\Money::format($total->total, $total->currency) }}
@@ -54,7 +54,33 @@
   </div>
 
   <h2 class="font-semibold text-slate-900 mt-8 mb-3">Transactions</h2>
-  <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+  <div class="sm:hidden space-y-3">
+    @forelse ($transactions as $txn)
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
+            <div class="text-xs text-slate-500 mt-0.5">
+              {{ $txn->created_at->format('d M Y') }} ·
+              {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-off' }} · {{ $txn->gateway_label }}
+            </div>
+          </div>
+          @include('partials.status-badge', ['status' => $txn->status])
+        </div>
+        <div class="text-xs text-slate-500 mt-2 break-all">{{ $txn->receipt_no ?? 'no receipt' }}</div>
+        @if ($txn->isPaid())
+          <a href="{{ route('admin.receipt', $txn) }}"
+             class="inline-block mt-3 text-sm text-slate-900 font-medium underline">PDF</a>
+        @endif
+      </div>
+    @empty
+      <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+        No transactions.
+      </div>
+    @endforelse
+  </div>
+
+  <div class="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="bg-slate-50 text-slate-600">
         <tr>

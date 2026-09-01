@@ -9,11 +9,13 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_root_url_sends_a_guest_to_the_login_page(): void
+    public function test_the_root_url_is_the_public_donation_page(): void
     {
-        // Replaces Laravel's stock "/ returns 200" assertion: this app has no
-        // public landing page, so the root redirects.
-        $this->get('/')->assertRedirect(route('login'));
+        // No login wall: the front door is where you give.
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Care for the animals of Braj')
+            ->assertSee('no account needed', false);
     }
 
     public function test_the_login_page_is_reachable(): void

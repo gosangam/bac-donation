@@ -44,8 +44,20 @@ class GuestDonationTest extends TestCase
 
     public function test_a_guest_can_reach_the_giving_pages(): void
     {
-        $this->get('/give')->assertOk();
+        $this->get('/')->assertOk();
+        $this->get('/give')->assertRedirect(route('checkout.choose'));
         $this->get('/give/details?kind=one_off&amount=500&currency=INR')->assertOk();
+    }
+
+    public function test_no_page_in_the_giving_flow_requires_a_login(): void
+    {
+        foreach (['/', '/give/details?kind=one_off&amount=500&currency=INR', '/login', '/register',
+            '/forgot-password'] as $uri) {
+            $response = $this->get($uri);
+
+            $this->assertNotSame(302, $response->status(),
+                "{$uri} redirected a guest; giving must not require an account.");
+        }
     }
 
     public function test_paying_as_a_guest_queues_account_linking(): void

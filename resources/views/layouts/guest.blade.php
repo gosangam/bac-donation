@@ -10,8 +10,10 @@
   <div class="min-h-full flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
-        <img src="{{ config('payments.org.logo_url') }}" alt="" class="h-16 w-16 mx-auto rounded object-contain">
-        <h1 class="mt-4 text-xl font-semibold text-slate-900">{{ config('payments.org.name') }}</h1>
+        <a href="{{ route('checkout.choose') }}">
+          <img src="{{ config('payments.org.logo_url') }}" alt="" class="h-16 w-16 mx-auto rounded object-contain">
+          <h1 class="mt-4 text-xl font-semibold text-slate-900">{{ config('payments.org.name') }}</h1>
+        </a>
       </div>
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         @include('partials.flash')

@@ -20,7 +20,41 @@
     @endif
   </form>
 
-  <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+  <div class="sm:hidden space-y-3">
+    @forelse ($transactions as $txn)
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="font-medium text-slate-900 truncate">{{ $txn->donor_name }}</div>
+            <div class="text-xs text-slate-500 truncate">{{ $txn->donor_email }}</div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
+            @include('partials.status-badge', ['status' => $txn->status])
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 mt-2 break-all">
+          {{ $txn->created_at->format('d M Y') }} · {{ $txn->gateway_label }} ·
+          {{ $txn->type === 'subscription' ? 'Auto' : 'One-off' }} ·
+          {{ $txn->receipt_no ?? 'no receipt' }}
+        </div>
+        @if ($txn->isPaid())
+          <div class="flex items-center gap-4 mt-3 text-sm">
+            <a href="{{ route('admin.receipt', $txn) }}" class="text-slate-900 font-medium underline">PDF</a>
+            <form method="POST" action="{{ route('admin.receipt.resend', $txn) }}">@csrf
+              <button class="text-slate-600 underline">Resend</button>
+            </form>
+          </div>
+        @endif
+      </div>
+    @empty
+      <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+        No transactions match.
+      </div>
+    @endforelse
+  </div>
+
+  <div class="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="bg-slate-50 text-slate-600">
         <tr>

@@ -1,25 +1,47 @@
 @extends('layouts.app')
 @section('title', 'Give')
 @section('content')
-  <h1 class="text-2xl font-semibold text-slate-900 mb-1">Make a donation</h1>
-  <p class="text-sm text-slate-500 mb-8">Give once, or set up a monthly gift that renews automatically.</p>
-
   @guest
-    <div class="mb-8 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-      No account needed. We'll email your receipt and set up an account afterwards so you can find it
-      again — or <a href="{{ route('login') }}" class="text-slate-900 font-medium hover:underline">sign in</a>
-      if you already have one.
+    <div class="text-center max-w-2xl mx-auto mb-10">
+      <h1 class="text-2xl sm:text-3xl md:text-4xl font-semibold text-slate-900 tracking-tight">
+        Care for the animals of Braj
+      </h1>
+      <p class="mt-3 text-sm sm:text-base text-slate-600">
+        Every gift feeds and treats rescued cows and street animals in Vrindavan. Give once, or
+        monthly — <strong class="text-slate-900">no account needed</strong>. Your 80G receipt is
+        emailed straight away.
+      </p>
+      <p class="mt-3 text-sm text-slate-500">
+        Already given before?
+        <a href="{{ route('login') }}" class="text-slate-900 font-medium hover:underline">Sign in</a>
+        to see your receipts.
+      </p>
     </div>
   @endguest
 
+  @auth
+    <div class="flex items-start justify-between gap-4 mb-8">
+      <div>
+        <h1 class="text-2xl font-semibold text-slate-900">Make a donation</h1>
+        <p class="text-sm text-slate-500 mt-1">Give once, or set up a monthly gift that renews automatically.</p>
+      </div>
+      <a href="{{ route('dashboard') }}"
+         class="text-sm text-slate-600 hover:text-slate-900 underline shrink-0">Your dashboard</a>
+    </div>
+  @endauth
+
   <section class="mb-10">
-    <h2 class="font-semibold text-slate-900 mb-3">Recurring plans</h2>
+    <h2 class="font-semibold text-slate-900 mb-3">Monthly giving</h2>
     @if ($plans->isEmpty())
       <div class="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
-        No plans are set up yet. An administrator can add them under Admin → Plans.
+        @auth
+          No plans are set up yet. An administrator can add them under Admin → Plans.
+        @else
+          Monthly giving isn't available just now — a one-off donation below works perfectly.
+        @endauth
       </div>
     @else
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         @foreach ($plans as $plan)
           <form method="GET" action="{{ route('checkout.details') }}"
                 class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col hover:border-slate-300">
@@ -43,14 +65,14 @@
   <section>
     <h2 class="font-semibold text-slate-900 mb-3">One-off donation</h2>
     <form method="GET" action="{{ route('checkout.details') }}"
-          class="bg-white rounded-xl border border-slate-200 p-5 max-w-lg">
+          class="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 w-full max-w-lg">
       <input type="hidden" name="kind" value="one_off">
       <input type="hidden" name="currency" value="{{ $currency }}">
 
-      <div class="flex flex-wrap gap-2 mb-4">
+      <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 mb-4">
         @foreach ($presets as $preset)
           <button type="submit" name="amount" value="{{ \App\Support\Money::toDecimal($preset, $currency) }}"
-                  class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:border-slate-900 hover:bg-slate-50">
+                  class="rounded-lg border border-slate-300 px-3 sm:px-4 py-2 text-sm font-medium hover:border-slate-900 hover:bg-slate-50">
             {{ \App\Support\Money::format($preset, $currency) }}
           </button>
         @endforeach

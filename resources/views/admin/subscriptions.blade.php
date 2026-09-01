@@ -2,7 +2,33 @@
 @section('title', 'Subscriptions')
 @section('content')
   <h1 class="text-2xl font-semibold text-slate-900 mb-6">Subscriptions</h1>
-  <div class="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+  <div class="sm:hidden space-y-3">
+    @forelse ($subscriptions as $subscription)
+      <div class="bg-white rounded-xl border border-slate-200 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="font-medium text-slate-900 truncate">{{ $subscription->user?->name ?? 'Unlinked guest' }}</div>
+            <div class="text-xs text-slate-500 truncate">{{ $subscription->user?->email }}</div>
+          </div>
+          @include('partials.status-badge', ['status' => $subscription->status])
+        </div>
+        <div class="text-sm text-slate-700 mt-2">{{ $subscription->plan->name }}</div>
+        <div class="text-xs text-slate-500">
+          {{ $subscription->plan->amount_formatted }} · {{ $subscription->plan->cadence }}
+          · {{ ucfirst($subscription->gateway) }}
+        </div>
+        @if ($subscription->gateway_subscription_id)
+          <div class="text-xs text-slate-400 font-mono mt-1 break-all">{{ $subscription->gateway_subscription_id }}</div>
+        @endif
+      </div>
+    @empty
+      <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
+        No subscriptions yet.
+      </div>
+    @endforelse
+  </div>
+
+  <div class="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="bg-slate-50 text-slate-600">
         <tr>

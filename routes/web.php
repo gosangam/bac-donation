@@ -10,13 +10,8 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    if (! auth()->check()) {
-        return redirect()->route('login');
-    }
-
-    return redirect()->route(auth()->user()->is_admin ? 'admin.index' : 'dashboard');
-});
+// The front door is the donation page, for signed-in donors and guests alike.
+// Admins are redirected by the 'donor' middleware on the group below.
 
 // ── Guest ───────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -44,7 +39,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 // Giving is open to guests: 'donor' only bounces admins, and a visitor with no
 // account passes through it. The account is created after payment, not before.
 Route::middleware('donor')->group(function () {
-    Route::get('/give', [CheckoutController::class, 'choose'])->name('checkout.choose');
+    Route::get('/', [CheckoutController::class, 'choose'])->name('checkout.choose');
+
+    // Kept so older links and bookmarks still land somewhere sensible.
+    Route::get('/give', fn () => redirect()->route('checkout.choose', request()->query()));
+
     Route::get('/give/details', [CheckoutController::class, 'details'])->name('checkout.details');
     Route::post('/give/start', [CheckoutController::class, 'start'])->name('checkout.start');
 

@@ -24,5 +24,10 @@
 
   <p class="mt-6 text-center text-sm text-slate-500">
     No account? <a href="{{ route('register') }}" class="text-slate-900 font-medium hover:underline">Create one</a>
+    · <a href="{{ route('password.request') }}" class="text-slate-900 font-medium hover:underline">Forgot password</a>
+  </p>
+  <p class="mt-3 text-center text-sm text-slate-500">
+    You don't need an account to give —
+    <a href="{{ route('checkout.choose') }}" class="text-slate-900 font-medium hover:underline">donate now</a>.
   </p>
 @endsection

@@ -33,12 +33,12 @@ class AdminAccessTest extends TestCase
 
     public static function donorRoutes(): array
     {
-        return [['/dashboard'], ['/give'], ['/subscriptions'], ['/transactions'], ['/profile']];
+        return [['/dashboard'], ['/'], ['/subscriptions'], ['/transactions'], ['/profile']];
     }
 
     public function test_donors_can_still_reach_the_giving_flow(): void
     {
-        $this->actingAs($this->donor())->get('/give')->assertOk();
+        $this->actingAs($this->donor())->get('/')->assertOk();
     }
 
     public function test_donors_cannot_see_the_admin_area(): void
@@ -49,10 +49,16 @@ class AdminAccessTest extends TestCase
         $this->actingAs($donor)->get('/admin/users')->assertNotFound();
     }
 
-    public function test_root_sends_each_role_to_its_own_home(): void
+    public function test_admins_are_redirected_off_the_public_homepage(): void
     {
+        // Admins cannot donate, so the donation homepage is not for them.
         $this->actingAs($this->admin())->get('/')->assertRedirect(route('admin.index'));
-        $this->actingAs($this->donor())->get('/')->assertRedirect(route('dashboard'));
+    }
+
+    public function test_donors_and_guests_both_get_the_donation_homepage(): void
+    {
+        $this->get('/')->assertOk();
+        $this->actingAs($this->donor())->get('/')->assertOk()->assertSee('Make a donation');
     }
 
     public function test_admin_can_open_a_donor_record(): void

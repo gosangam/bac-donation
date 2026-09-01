@@ -37,6 +37,51 @@ php artisan user:admin someone@example.com            # grant
 php artisan user:admin someone@example.com --revoke   # revoke
 ```
 
+## There is no login wall
+
+`/` **is** the donation page — plans and one-off amounts, for guests and signed-in donors alike. No
+redirect to login, no account required to give. `/give` redirects to `/` so older links still work.
+
+| Visitor | `/` |
+| --- | --- |
+| Guest | landing copy, monthly plans, preset + custom one-off amounts, "My donations" and "Donate" in the header |
+| Signed-in donor | the same giving page with their nav and a link to their dashboard |
+| Admin | redirected to `/admin` — admins cannot donate |
+
+The only pages that require signing in are the ones that are *about* an account: dashboard,
+subscriptions, the full transaction list and profile.
+
+## Mobile
+
+Audited at a real 375px viewport, not guessed at. macOS enforces a ~500px minimum on headless windows,
+so each page was measured inside a 375px iframe, comparing `documentElement.scrollWidth` against the
+viewport and listing any element crossing the edge. **All 17 pages: zero horizontal overflow.**
+
+Two things that measurement changed:
+
+- **Tables become cards below `sm`.** A scrollable table technically "fits", but on the donor
+  transaction list the amount, status and receipt link — the only things anyone came for — sat
+  off-screen behind a horizontal scroll. Transactions (donor and admin), donors, subscriptions and the
+  donor detail page all render as cards on a phone and as tables from `sm` up.
+- **The nav becomes a drawer below `sm`.** Inline, the current page was pushed off the edge and
+  overlapped "Sign out"; a scrolling row fixed the overflow but hid whichever page you were on. A
+  hamburger now opens a right-hand drawer with the links, the signed-in user, "Your details" and
+  "Sign out". Links live in `partials/nav-links.blade.php` so the drawer and the desktop bar cannot
+  drift apart.
+
+  It closes on the X, on the backdrop and on **Escape**; focus moves into the panel on open and back
+  to the button on close; **Tab is trapped** inside while it is open; the page behind cannot scroll;
+  `aria-expanded` / `role="dialog"` / `aria-modal` / `aria-current` are all set; and
+  `prefers-reduced-motion` skips the slide.
+
+  The open animation deliberately does **not** use `requestAnimationFrame` — a forced reflow gets the
+  transition running instead. If rAF is throttled or never fires, an rAF-gated panel would sit
+  off-screen and the menu would simply look broken.
+
+Also: the org name drops out of the header on the narrowest screens (it wrapped to two lines and
+squeezed the actions), "My donations" shortens to "Sign in", the plan grid runs 1 / 2 / 4 columns, and
+one-off presets become a 2-up grid instead of cramped wrapping.
+
 ## Guest donations
 
 Nobody has to register to give. `/give` is open, the same details form is used, and the account is
@@ -76,7 +121,7 @@ response whether or not the address is registered** — a different one is an en
 ## The flow
 
 ```
-/give              choose a recurring plan or a one-off amount   (open to guests)
+/                  choose a recurring plan or a one-off amount   (public homepage)
   → /give/details  name, email, phone, address, PAN, purpose   ← collected BEFORE any gateway
   → /give/start    profile updated, Transaction created (pending), handed to the gateway
   → gateway        Razorpay opens inline; Stripe and PayPal redirect
@@ -248,6 +293,12 @@ that clears the guard and re-queues.
   (`plan_TMqoLx8p5QI32x`, ₹399, 1× monthly); unconfigured gateways → 422 naming the gateway;
   unknown gateway → 404
 
+**The public homepage**: `/` returns 200 to a guest with no redirect, showing the headline, the
+"no account needed" line, all four seeded plans, four preset amounts and a custom-amount field;
+`/give` 302s to `/`; a signed-in donor gets the same page with their nav plus a dashboard link; an
+admin is redirected to `/admin`. A test asserts that none of `/`, the details form, `/login`,
+`/register` or `/forgot-password` redirects a guest.
+
 **Guest donations**, driven through a real browser session against live Razorpay:
 
 - a guest reached `/give`, submitted the details form, and a **real Razorpay order was created**
@@ -276,7 +327,7 @@ that clears the guard and re-queues.
   `application/pdf` attachment whose payload decodes to `%PDF`
 - subject and body carry the receipt number, `₹2,500.00`, and `UPI (radha@okhdfcbank)` parsed from
   the payload
-- 32 tests pass, including: a retried delivery emails **once**; an unpaid payment is never emailed; a
+- 34 tests pass, including: a retried delivery emails **once**; an unpaid payment is never emailed; a
   transaction with no donor email is skipped; and `RECEIPT_EMAIL_ENABLED=false` stops the app
   queueing anything while still recording the payment
 - Gotenberg down → the failure is written to `receipt_email_error` on the first attempt and shows as
