@@ -45,13 +45,18 @@ class PayPalGateway implements PaymentGateway
 
     /**
      * Tokens last ~9 hours; caching avoids an extra round trip on every call.
-     * Cached under the mode so switching sandbox↔live cannot reuse a stale token.
+     *
+     * The key covers the client id as well as the mode. Keying on mode alone
+     * means swapping to a different REST app within sandbox keeps serving the
+     * old app's token until the entry expires — so the new credentials appear
+     * to do nothing, and calls silently read the previous app's account.
      */
     private function accessToken(): string
     {
         $mode = config('payments.paypal.mode');
+        $client = substr(hash('sha256', (string) config('payments.paypal.client_id')), 0, 12);
 
-        return Cache::remember("paypal.token.{$mode}", now()->addMinutes(30), function () {
+        return Cache::remember("paypal.token.{$mode}.{$client}", now()->addMinutes(30), function () {
             $response = Http::asForm()
                 ->withBasicAuth(config('payments.paypal.client_id'), config('payments.paypal.secret'))
                 ->timeout(20)
