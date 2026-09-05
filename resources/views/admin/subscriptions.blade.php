@@ -41,8 +41,16 @@
         @forelse ($subscriptions as $subscription)
           <tr class="border-t border-slate-100">
             <td class="px-4 py-3">
-              <div class="font-medium text-slate-900">{{ $subscription->user->name }}</div>
-              <div class="text-xs text-slate-500">{{ $subscription->user->email }}</div>
+              {{-- A guest subscription has no owner until LinkOrCreateDonorAccount
+                   runs, which is after the first payment clears. --}}
+              @if ($subscription->user)
+                <a href="{{ route('admin.users.show', $subscription->user) }}"
+                   class="font-medium text-slate-900 hover:underline">{{ $subscription->user->name }}</a>
+                <div class="text-xs text-slate-500">{{ $subscription->user->email }}</div>
+              @else
+                <div class="font-medium text-slate-500">Unlinked guest</div>
+                <div class="text-xs text-slate-400">Attached once the first payment clears</div>
+              @endif
             </td>
             <td class="px-4 py-3">
               {{ $subscription->plan->name }}
