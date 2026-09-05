@@ -147,8 +147,16 @@ INR with Indian grouping (₹1,50,000) rather than Western.
   transaction so two concurrent webhooks cannot claim the same number.
 - Donor details are **snapshotted onto the transaction**, not read from the user at print time. A
   receipt must keep saying what it said when issued, even after the donor edits their profile.
-- Rendered by **Gotenberg** — the same service the n8n workflows use, so the emailed receipt and the
-  downloaded one come out of one renderer. Set `GOTENBERG_URL`; it defaults to `http://localhost:3000`.
+- Rendered **in-process by Dompdf**. No external renderer, no container to start: a receipt is issued
+  the moment a payment clears, inside a queued job, and making that depend on a separate service
+  being up meant receipts failed for reasons unrelated to the donation. Pure PHP, so it also works on
+  shared hosting where no daemon can be run.
+- The logo is fetched once and **embedded as a data URI**, cached for 30 days. The renderer itself has
+  `isRemoteEnabled = false` — everything it needs is already inside the document, so a remote fetch
+  could only be an SSRF foothold or a hang while a queue worker waits. A logo that cannot be had falls
+  back to the organisation name in brand colour rather than failing the receipt.
+- Every font stack leads with **DejaVu Sans**, the one bundled font carrying U+20B9. The PDF core
+  fonts are WinAnsi-encoded and print the rupee sign as `?`.
 - `/transactions/{t}/receipt` returns 404 for a payment that has not completed. A receipt is proof
   money was received; issuing one for a pending payment would be a false document.
 
@@ -264,7 +272,7 @@ cannot settle INR through it.
 Every confirmed payment queues `SendDonationReceipt`, which renders the PDF and emails it to the
 donor — one-offs and automatic renewals alike.
 
-**Queued on purpose.** Rendering calls Gotenberg and sending calls SMTP; neither belongs inside a
+**Queued on purpose.** Rendering builds a PDF and sending calls SMTP; neither belongs inside a
 webhook request, because a gateway that does not get a fast 2xx retries the whole delivery. Run a
 worker:
 
@@ -368,9 +376,11 @@ admin is redirected to `/admin`. A test asserts that none of `/`, the details fo
   (`password`, the email, the name, empty); `/forgot-password` gives an identical response for known
   and unknown addresses
 - receipt HTML renders with the right amount, receipt number, donor snapshot, PAN and 80G
-- Gotenberg unreachable → a stated error naming the URL and how to fix it, not a raw cURL failure
+- the PDF renders with **no outbound HTTP at all** (asserted with a fake HTTP client), starts with
+  `%PDF-`, and shows `₹750.00` rather than `?750.00`
+- an unreachable logo still produces a valid receipt
 
-**Receipt email**, end to end through a queue worker against a stubbed Gotenberg:
+**Receipt email**, end to end through a queue worker:
 
 - webhook → transaction `paid` → `BAC/2026-27/00002` → job queued → worker sends
 - the sent message is `multipart/mixed` → `related` → `alternative`, carrying `text/plain`,
@@ -381,9 +391,9 @@ admin is redirected to `/admin`. A test asserts that none of `/`, the details fo
 - 34 tests pass, including: a retried delivery emails **once**; an unpaid payment is never emailed; a
   transaction with no donor email is skipped; and `RECEIPT_EMAIL_ENABLED=false` stops the app
   queueing anything while still recording the payment
-- Gotenberg down → the failure is written to `receipt_email_error` on the first attempt and shows as
-  Failed in admin; **Resend** then delivers it once Gotenberg is back
+- a render or send failure is written to `receipt_email_error` on the first attempt and shows as
+  Failed in admin; **Resend** then delivers it
 
-Not verified: live Razorpay/Stripe/PayPal checkouts (no live keys here), real SMTP (the `log` mailer
-was used), and real Gotenberg PDF output (a stub returned a valid PDF; the HTML it renders from was
-checked separately).
+Not verified: live Razorpay/Stripe/PayPal checkouts (no live keys here) and real SMTP (the `log`
+mailer was used). PDF output *is* verified for real — rendered from a live transaction and inspected
+as an image, not just asserted to start with `%PDF`.

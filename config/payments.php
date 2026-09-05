@@ -55,7 +55,4 @@ return [
     ],
 
     // Gotenberg renders receipt PDFs. Same service the n8n workflows use.
-    'gotenberg' => [
-        'url' => env('GOTENBERG_URL', 'http://localhost:3000'),
-    ],
 ];
