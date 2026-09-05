@@ -149,6 +149,9 @@ class AdminController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'amount_major' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'size:3'],
+            // Optional: without it the plan is simply not offered to foreign
+            // donors, since PayPal cannot bill an Indian merchant in rupees.
+            'amount_usd_major' => ['nullable', 'numeric', 'min:0.01'],
             'interval' => ['required', \Illuminate\Validation\Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
             'interval_count' => ['required', 'integer', 'min:1', 'max:12'],
             'razorpay_plan_id' => ['nullable', 'string', 'max:120'],
@@ -169,6 +172,11 @@ class AdminController extends Controller
             'description' => $data['description'] ?? null,
             'amount' => \App\Support\Money::toMinor((float) $data['amount_major'], $currency),
             'currency' => $currency,
+            // Set independently of `amount` — a donation tier is a decision,
+            // not a live FX conversion of the rupee price.
+            'amount_usd' => filled($data['amount_usd_major'] ?? null)
+                ? \App\Support\Money::toMinor((float) $data['amount_usd_major'], 'USD')
+                : null,
             'interval' => $data['interval'],
             'interval_count' => $data['interval_count'],
             // Each gateway holds its own copy of the plan under its own id; this

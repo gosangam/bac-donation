@@ -25,6 +25,17 @@
            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm uppercase">
   </div>
   <div>
+    <label class="block text-sm font-medium text-slate-700 mb-1">USD amount</label>
+    <input name="amount_usd_major" type="number" step="0.01" min="0.01"
+           value="{{ old('amount_usd_major', $plan && $plan->amount_usd !== null ? \App\Support\Money::toDecimal($plan->amount_usd, 'USD') : '') }}"
+           placeholder="optional"
+           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+    <p class="text-xs text-slate-500 mt-1">
+      Foreign donors are billed this. Leave blank to keep the plan domestic-only.
+      Must match the price on the PayPal plan below.
+    </p>
+  </div>
+  <div>
     <label class="block text-sm font-medium text-slate-700 mb-1">Interval</label>
     <select name="interval" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
       @foreach (['daily', 'weekly', 'monthly', 'yearly'] as $interval)

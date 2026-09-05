@@ -30,14 +30,34 @@
     </div>
   @endauth
 
+  <div class="flex justify-center sm:justify-end mb-6">
+    <form method="POST" action="{{ route('checkout.currency') }}"
+          class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5" role="group"
+          aria-label="Giving currency">
+      @csrf
+      @foreach (\App\Support\Currency::supported() as $code)
+        <button name="currency" value="{{ $code }}"
+                @if ($code === $currency) aria-current="true" @endif
+                class="rounded-md px-3 py-1.5 text-sm font-medium transition
+                       {{ $code === $currency
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-600 hover:text-slate-900' }}">
+          {{ $code === 'INR' ? '₹ INR' : '$ USD' }}
+        </button>
+      @endforeach
+    </form>
+  </div>
+
   <section class="mb-10">
     <h2 class="font-semibold text-slate-900 mb-3">Monthly giving</h2>
     @if ($plans->isEmpty())
       <div class="bg-white rounded-xl border border-slate-200 p-6 text-sm text-slate-500">
         @auth
-          No plans are set up yet. An administrator can add them under Admin → Plans.
+          No plans are priced in {{ $currency }} yet. An administrator can add a
+          {{ $currency }} amount under Admin → Plans.
         @else
-          Monthly giving isn't available just now — a one-off donation below works perfectly.
+          Monthly giving isn't available in {{ $currency }} just now — a one-off
+          donation below works perfectly.
         @endauth
       </div>
     @else
@@ -47,8 +67,9 @@
                 class="bg-white rounded-xl border border-slate-200 p-5 flex flex-col hover:border-slate-300">
             <input type="hidden" name="kind" value="plan">
             <input type="hidden" name="plan" value="{{ $plan->slug }}">
+            <input type="hidden" name="currency" value="{{ $currency }}">
             <div class="font-semibold text-slate-900">{{ $plan->name }}</div>
-            <div class="text-2xl font-semibold text-brand mt-2">{{ $plan->amount_formatted }}</div>
+            <div class="text-2xl font-semibold text-brand mt-2">{{ $plan->amountFormattedIn($currency) }}</div>
             <div class="text-xs text-slate-500 mt-1">{{ $plan->cadence }}</div>
             @if ($plan->description)
               <p class="text-sm text-slate-600 mt-3 flex-1">{{ $plan->description }}</p>

@@ -23,6 +23,40 @@ class Plan extends Model
         return $this->hasMany(Subscription::class);
     }
 
+    /**
+     * The price in a given currency, or null if this plan is not offered in it.
+     *
+     * `amount`/`currency` hold the domestic price; `amount_usd` is the separate
+     * figure foreign donors are billed, which is a pricing decision rather than
+     * a live conversion — the two are set independently and neither is derived.
+     */
+    public function amountFor(string $currency): ?int
+    {
+        $currency = strtoupper($currency);
+
+        if ($currency === strtoupper($this->currency)) {
+            return (int) $this->amount;
+        }
+
+        if ($currency === 'USD' && $this->amount_usd !== null) {
+            return (int) $this->amount_usd;
+        }
+
+        return null;
+    }
+
+    public function offeredIn(string $currency): bool
+    {
+        return $this->amountFor($currency) !== null;
+    }
+
+    public function amountFormattedIn(string $currency): ?string
+    {
+        $amount = $this->amountFor($currency);
+
+        return $amount === null ? null : Money::format($amount, strtoupper($currency));
+    }
+
     /** The plan's id inside one gateway, or null if it has not been created there. */
     public function gatewayPlanId(string $gateway): ?string
     {

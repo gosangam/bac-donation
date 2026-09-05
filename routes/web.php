@@ -44,6 +44,10 @@ Route::middleware('donor')->group(function () {
     // Kept so older links and bookmarks still land somewhere sensible.
     Route::get('/give', fn () => redirect()->route('checkout.choose', request()->query()));
 
+    // POST, not GET: this writes to the session, and a currency switch
+    // must not be something a prefetcher or a crawler can trigger.
+    Route::post('/currency', [CheckoutController::class, 'setCurrency'])->name('checkout.currency');
+
     Route::get('/give/details', [CheckoutController::class, 'details'])->name('checkout.details');
     Route::post('/give/start', [CheckoutController::class, 'start'])->name('checkout.start');
 

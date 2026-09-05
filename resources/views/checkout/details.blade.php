@@ -115,8 +115,16 @@
 
         @if (empty($gateways))
           <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-            No payment method is configured for {{ $currency }} yet. An administrator needs to add API
-            keys before donations can be taken.
+            @if ($plan)
+              {{-- Either no gateway takes this currency, or none of them has this
+                   plan created in it. Both are admin setup, not donor error. --}}
+              {{ $plan->name }} can't be taken in {{ $currency }} yet. An administrator
+              needs to create this plan in a gateway that supports {{ $currency }}.
+              <a href="{{ route('checkout.choose') }}" class="underline font-medium">Choose another plan</a>.
+            @else
+              No payment method is configured for {{ $currency }} yet. An administrator needs to add API
+              keys before donations can be taken.
+            @endif
           </div>
         @else
           <div class="grid sm:grid-cols-3 gap-3">

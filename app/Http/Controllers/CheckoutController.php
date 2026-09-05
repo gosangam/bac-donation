@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Payments\GatewayManager;
 use App\Services\PaymentRecorder;
 use App\Support\GuestCheckout;
+use App\Support\Currency;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,13 +18,27 @@ class CheckoutController extends Controller
     public function __construct(private GatewayManager $gateways) {}
 
     /** Step 1 — choose a plan or a one-off amount. */
-    public function choose()
+    public function choose(Request $request)
     {
+        $currency = Currency::resolve($request);
+
         return view('checkout.choose', [
-            'plans' => Plan::where('is_active', true)->orderBy('sort_order')->get(),
-            'presets' => config('payments.one_off.presets'),
-            'currency' => config('payments.default_currency'),
+            // A plan with no price in this currency cannot be bought in it, so
+            // showing it would only lead to a dead end.
+            'plans' => Plan::where('is_active', true)->orderBy('sort_order')->get()
+                ->filter(fn (Plan $plan) => $plan->offeredIn($currency))->values(),
+            'presets' => config("payments.one_off.presets_{$currency}")
+                ?? config('payments.one_off.presets'),
+            'currency' => $currency,
         ]);
+    }
+
+    /** Switch the giving currency, then return to wherever the donor was. */
+    public function setCurrency(Request $request)
+    {
+        Currency::remember($request, $request->input('currency'));
+
+        return back();
     }
 
     /** Step 2 — the donor details form, prefilled from the profile. */
@@ -37,10 +52,27 @@ class CheckoutController extends Controller
         ]);
 
         $plan = isset($input['plan']) ? Plan::where('slug', $input['plan'])->firstOrFail() : null;
-        $currency = strtoupper($plan?->currency ?? $input['currency'] ?? config('payments.default_currency'));
+
+        // An explicit ?currency= wins so a shared link keeps its price; other-
+        // wise fall back to whatever this visitor is giving in.
+        $currency = Currency::isSupported($input['currency'] ?? null)
+            ? strtoupper($input['currency'])
+            : Currency::resolve($request);
+
+        if ($plan) {
+            Currency::remember($request, $currency);
+        }
+
         $amount = $plan
-            ? $plan->amount
+            ? $plan->amountFor($currency)
             : Money::toMinor((float) $input['amount'], $currency);
+
+        // A plan with no price in this currency is not for sale in it.
+        if ($plan && $amount === null) {
+            return redirect()->route('checkout.choose')->with(
+                'status', "{$plan->name} isn't available in {$currency}. Here are the plans that are."
+            );
+        }
 
         $this->assertAmountWithinLimits($amount, $currency, $plan !== null);
 
@@ -52,9 +84,12 @@ class CheckoutController extends Controller
             'amount' => $amount,
             'currency' => $currency,
             'kind' => $input['kind'],
-            // A gateway with no keys, or one that cannot take this currency, must
-            // not be offered — the failure would otherwise happen mid-checkout.
-            'gateways' => $this->gateways->available($currency),
+            // A gateway with no keys, one that cannot take this currency, or —
+            // for a plan — one the plan was never created in, must not be
+            // offered: the failure would otherwise happen mid-checkout.
+            'gateways' => $plan
+                ? $this->gateways->availableForPlan($plan, $currency)
+                : $this->gateways->available($currency),
         ]);
     }
 
@@ -90,7 +125,14 @@ class CheckoutController extends Controller
 
         // The amount is re-derived from the plan rather than trusted from the
         // form: a posted amount is user input, and a plan's price is not.
-        $amount = $plan ? $plan->amount : (int) $data['amount'];
+        $amount = $plan ? $plan->amountFor($currency) : (int) $data['amount'];
+
+        if ($plan && $amount === null) {
+            throw ValidationException::withMessages([
+                'gateway' => "{$plan->name} is not available in {$currency}.",
+            ]);
+        }
+
         $this->assertAmountWithinLimits($amount, $currency, $plan !== null);
 
         $gateway = $this->gateways->get($data['gateway']);
@@ -104,6 +146,13 @@ class CheckoutController extends Controller
         if (! in_array($currency, $gateway->supportedCurrencies(), true)) {
             throw ValidationException::withMessages([
                 'gateway' => $gateway->displayName()." cannot take {$currency} here.",
+            ]);
+        }
+
+        // Mirrors availableForPlan(): the form is a hint, this is the check.
+        if ($plan && blank($plan->gatewayPlanId($gateway->key()))) {
+            throw ValidationException::withMessages([
+                'gateway' => "{$plan->name} is not set up in ".$gateway->displayName().' yet.',
             ]);
         }
 

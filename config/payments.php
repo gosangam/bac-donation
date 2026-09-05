@@ -20,7 +20,10 @@ return [
     'one_off' => [
         'min' => (int) env('ONE_OFF_MIN', 100),        // minor units
         'max' => (int) env('ONE_OFF_MAX', 100000000),
-        'presets' => [50000, 100000, 250000, 500000],
+        // Minor units. `presets` is the domestic ladder; per-currency keys are
+        // looked up as presets_<CODE> and fall back to it when absent.
+        'presets' => [50000, 100000, 250000, 500000],          // Rs 500 - Rs 5,000
+        'presets_USD' => [1000, 2500, 5000, 10000],            // $10 - $100
     ],
 
     'razorpay' => [
