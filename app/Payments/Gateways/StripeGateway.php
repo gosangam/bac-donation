@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Transaction;
 use App\Payments\CheckoutIntent;
 use App\Payments\PaymentGateway;
+use App\Payments\RemotePayment;
 use App\Payments\WebhookEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -211,6 +212,60 @@ class StripeGateway implements PaymentGateway
         }
 
         return false;
+    }
+
+    /**
+     * Identify a payment this app has no row for.
+     *
+     * Stripe is the easy case: it expands the customer and the line items into
+     * the event itself, so nothing here needs an API call. Written from the
+     * documented payload shape — unlike the Razorpay and PayPal paths, it has
+     * not been exercised against a live account.
+     */
+    public function describePayment(WebhookEvent $event): ?RemotePayment
+    {
+        $object = $event->raw['data']['object'] ?? [];
+
+        if (! $object) {
+            return null;
+        }
+
+        $email = $object['customer_details']['email']
+            ?? $object['customer_email']
+            ?? null;
+
+        $name = $object['customer_details']['name']
+            ?? $object['customer_name']
+            ?? null;
+
+        if (blank($email) && blank($event->subscriptionId)) {
+            return null;
+        }
+
+        // On an invoice the price sits on the first line item; a one-off session
+        // has no plan at all.
+        $price = $object['lines']['data'][0]['price'] ?? [];
+        $currency = strtoupper((string) ($price['currency'] ?? $object['currency'] ?? ''));
+
+        return new RemotePayment(
+            donorName: $name,
+            donorEmail: $email,
+            donorPhone: $object['customer_details']['phone'] ?? null,
+            subscriptionId: $event->subscriptionId,
+            planId: $price['id'] ?? null,
+            planName: $object['lines']['data'][0]['description'] ?? null,
+            planAmount: isset($price['unit_amount']) ? (int) $price['unit_amount'] : null,
+            planCurrency: $currency ?: null,
+            planInterval: match ($price['recurring']['interval'] ?? null) {
+                'day' => 'daily',
+                'week' => 'weekly',
+                'month' => 'monthly',
+                'year' => 'yearly',
+                default => null,
+            },
+            planIntervalCount: $price['recurring']['interval_count'] ?? null,
+            purpose: $object['lines']['data'][0]['description'] ?? null,
+        );
     }
 
     public function parseWebhook(Request $request): WebhookEvent

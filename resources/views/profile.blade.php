@@ -13,7 +13,7 @@
             ['name', 'Full name', 'text', true], ['phone', 'Phone', 'tel', true],
             ['address_line1', 'Address line 1', 'text', true], ['address_line2', 'Address line 2', 'text', false],
             ['city', 'City', 'text', true], ['state', 'State', 'text', false],
-            ['postal_code', 'PIN / ZIP', 'text', true], ['pan', 'PAN', 'text', false],
+            ['postal_code', 'PIN / ZIP', 'text', true],
           ];
         @endphp
         @foreach ($fields as [$field, $label, $type, $required])
@@ -21,10 +21,14 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">{{ $label }}</label>
             <input type="{{ $type }}" name="{{ $field }}" value="{{ old($field, $user->$field) }}"
                    @if ($required) required @endif
-                   @if ($field === 'pan') style="text-transform:uppercase" maxlength="10" @endif
                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
           </div>
         @endforeach
+        @include('partials.identity-proof', [
+          'type' => old('id_type', $user->id_type),
+          'number' => old('id_number', $user->id_number),
+          'required' => false,
+        ])
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Country</label>
           <select name="country" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Transaction;
 use App\Payments\CheckoutIntent;
 use App\Payments\PaymentGateway;
+use App\Payments\RemotePayment;
 use App\Payments\WebhookEvent;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -363,6 +364,133 @@ class PayPalGateway implements PaymentGateway
         }
 
         return WebhookEvent::ignored("unhandled event: {$type}", $body);
+    }
+
+    /**
+     * Identify a payment this app has no row for.
+     *
+     * Unlike Razorpay, a PayPal capture carries no payer identity at all — the
+     * resource names an agreement or an order and nothing else — so the donor
+     * always costs an API call here.
+     */
+    public function describePayment(WebhookEvent $event): ?RemotePayment
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $resource = $event->raw['resource'] ?? [];
+
+        // PAYMENT.SALE.COMPLETED on a subscription: billing_agreement_id is the
+        // subscription, and the subscriber hangs off it.
+        if (filled($event->subscriptionId)) {
+            return $this->describeSubscriptionPayment($event->subscriptionId);
+        }
+
+        // A one-off: the payer is on the order, not on the capture.
+        $orderId = $event->orderId
+            ?? ($resource['supplementary_data']['related_ids']['order_id'] ?? null);
+
+        if (blank($orderId)) {
+            return null;
+        }
+
+        $order = $this->http()->get($this->base()."/v2/checkout/orders/{$orderId}");
+
+        if (! $order->successful()) {
+            return null;
+        }
+
+        $payer = $order->json()['payer'] ?? [];
+        $unit = $order->json()['purchase_units'][0] ?? [];
+
+        return new RemotePayment(
+            donorName: $this->payerName($payer),
+            donorEmail: $payer['email_address'] ?? null,
+            donorPhone: $payer['phone']['phone_number']['national_number'] ?? null,
+            purpose: $unit['description'] ?? null,
+        );
+    }
+
+    private function describeSubscriptionPayment(string $subscriptionId): ?RemotePayment
+    {
+        $response = $this->http()->get($this->base()."/v1/billing/subscriptions/{$subscriptionId}");
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $subscription = $response->json();
+        $subscriber = $subscription['subscriber'] ?? [];
+        $plan = $this->planDetails($subscription['plan_id'] ?? null);
+
+        return new RemotePayment(
+            donorName: $this->payerName($subscriber),
+            donorEmail: $subscriber['email_address'] ?? null,
+            donorPhone: $subscriber['phone']['phone_number']['national_number'] ?? null,
+            subscriptionId: $subscriptionId,
+            planId: $subscription['plan_id'] ?? null,
+            planName: $plan['name'] ?? null,
+            planAmount: $plan['amount'] ?? null,
+            planCurrency: $plan['currency'] ?? null,
+            planInterval: $plan['interval'] ?? null,
+            planIntervalCount: $plan['interval_count'] ?? null,
+            purpose: $plan['name'] ?? null,
+        );
+    }
+
+    /**
+     * Price and cadence live on the plan's REGULAR billing cycle; a TRIAL cycle
+     * may precede it and is not what the donor is charged.
+     *
+     * @return array<string, mixed>
+     */
+    private function planDetails(?string $planId): array
+    {
+        if (blank($planId)) {
+            return [];
+        }
+
+        $response = $this->http()->get($this->base()."/v1/billing/plans/{$planId}");
+
+        if (! $response->successful()) {
+            return [];
+        }
+
+        $plan = $response->json();
+
+        $regular = collect($plan['billing_cycles'] ?? [])
+            ->firstWhere('tenure_type', 'REGULAR') ?? ($plan['billing_cycles'][0] ?? []);
+
+        $price = $regular['pricing_scheme']['fixed_price'] ?? [];
+        $currency = $price['currency_code'] ?? null;
+
+        return [
+            'name' => $plan['name'] ?? null,
+            'amount' => isset($price['value']) && $currency
+                ? Money::toMinor((float) $price['value'], $currency)
+                : null,
+            'currency' => $currency,
+            'interval' => match ($regular['frequency']['interval_unit'] ?? null) {
+                'DAY' => 'daily',
+                'WEEK' => 'weekly',
+                'MONTH' => 'monthly',
+                'YEAR' => 'yearly',
+                default => null,
+            },
+            'interval_count' => $regular['frequency']['interval_count'] ?? null,
+        ];
+    }
+
+    /** @param array<string, mixed> $party */
+    private function payerName(array $party): ?string
+    {
+        $name = trim(implode(' ', array_filter([
+            $party['name']['given_name'] ?? null,
+            $party['name']['surname'] ?? null,
+        ])));
+
+        return $name ?: null;
     }
 
     /** Cancels the mandate at PayPal so the donor stops being charged. */

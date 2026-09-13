@@ -30,7 +30,8 @@
             'Email' => $txn->donor_email,
             'Phone' => $txn->donor_phone ?? '—',
             'Address' => $txn->donor_address ?? '—',
-            'PAN' => $txn->donor_pan ?? '—',
+            \App\Support\IdentityProof::label($txn->donor_id_type) ?: 'Identity proof'
+                => \App\Support\IdentityProof::forDisplay($txn->donor_id_type, $txn->donor_id_number) ?? '—',
           ];
         @endphp
         @foreach ($rows as $label => $value)

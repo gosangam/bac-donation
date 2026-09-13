@@ -50,6 +50,15 @@ interface PaymentGateway
 
     public function parseWebhook(Request $request): WebhookEvent;
 
+    /**
+     * Ask the gateway who paid, for a payment this app holds no row for.
+     *
+     * Called only on that path, because it costs API round trips. Returning null
+     * means the gateway cannot identify the payment — the event is then logged
+     * and dropped rather than guessed at.
+     */
+    public function describePayment(WebhookEvent $event): ?RemotePayment;
+
     /** Confirm a payment on the browser-return leg, for gateways that need it. */
     public function confirmReturn(Transaction $transaction, Request $request): bool;
 }

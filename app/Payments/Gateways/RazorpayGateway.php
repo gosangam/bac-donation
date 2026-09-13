@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Transaction;
 use App\Payments\CheckoutIntent;
 use App\Payments\PaymentGateway;
+use App\Payments\RemotePayment;
 use App\Payments\WebhookEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -278,9 +279,14 @@ class RazorpayGateway implements PaymentGateway
             reference: $payment['notes']['reference'] ?? null,
             paymentId: $payment['id'] ?? null,
             orderId: $payment['order_id'] ?? null,
-            // invoice_id is set on subscription charges and null on one-offs,
-            // which is the only reliable way to tell them apart here.
-            subscriptionId: $payment['invoice_id'] ?? null,
+            // Only subscription.charged carries the subscription entity;
+            // payment.captured does not, and its invoice_id is NOT a
+            // subscription id. Resolving one from the other is an API call, so
+            // it happens in describePayment() and only when it is needed.
+            subscriptionId: $body['payload']['subscription']['entity']['id'] ?? null,
+            // Set on subscription charges, absent on one-offs — still the only
+            // in-payload signal that a charge is recurring.
+            invoiceId: $payment['invoice_id'] ?? null,
             amount: $payment['amount'] ?? null,
             currency: $payment['currency'] ?? null,
             method: $this->describeMethod($payment),
@@ -302,6 +308,113 @@ class RazorpayGateway implements PaymentGateway
             'netbanking' => 'Netbanking'.(filled($payment['bank'] ?? null) ? " ({$payment['bank']})" : ''),
             default => ucfirst((string) ($payment['method'] ?? 'Razorpay')),
         };
+    }
+
+    /**
+     * Identify a payment this app has no row for.
+     *
+     * Razorpay's payment entity carries the donor's email and phone directly, so
+     * a one-off needs no API call at all. A subscription charge needs two or
+     * three: the payment names only an invoice, the invoice names the
+     * subscription, and the subscription names the plan.
+     */
+    public function describePayment(WebhookEvent $event): ?RemotePayment
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        $payment = $event->raw['payload']['payment']['entity'] ?? [];
+
+        if (! $payment) {
+            return null;
+        }
+
+        // ?? is not enough: Razorpay sends card.name as "" when the issuer gave
+        // no name, and an empty string would win over a real fallback.
+        $donorName = collect([
+            $payment['notes']['donor_name'] ?? null,
+            $payment['notes']['name'] ?? null,
+            $payment['card']['name'] ?? null,
+        ])->first(fn ($value) => filled($value));
+
+        // This app's own checkout writes the donor's address into the payment
+        // notes, so an adopted charge on a subscription it created still gets a
+        // full address on the receipt.
+        $donorAddress = $payment['notes']['address'] ?? null;
+
+        $subscriptionId = $event->subscriptionId ?: $this->subscriptionIdFor($event->invoiceId);
+
+        // A one-off taken outside the dashboard — a payment link, a QR code.
+        // Everything needed is already in the payload.
+        if (! $subscriptionId) {
+            return new RemotePayment(
+                donorName: $donorName,
+                donorEmail: $this->realEmail($payment['email'] ?? null),
+                donorPhone: $payment['contact'] ?? null,
+                donorAddress: $donorAddress,
+                purpose: $payment['notes']['purpose'] ?? $payment['description'] ?? null,
+            );
+        }
+
+        $plan = $this->planForSubscription($subscriptionId);
+
+        return new RemotePayment(
+            donorName: $donorName,
+            donorEmail: $this->realEmail($payment['email'] ?? null),
+            donorPhone: $payment['contact'] ?? null,
+            donorAddress: $donorAddress,
+            subscriptionId: $subscriptionId,
+            planId: $plan['id'] ?? null,
+            planName: $plan['item']['name'] ?? null,
+            planAmount: isset($plan['item']['amount']) ? (int) $plan['item']['amount'] : null,
+            planCurrency: $plan['item']['currency'] ?? null,
+            // Razorpay's period vocabulary already matches the plans table.
+            planInterval: $plan['period'] ?? null,
+            planIntervalCount: isset($plan['interval']) ? (int) $plan['interval'] : null,
+            purpose: $plan['item']['name'] ?? $payment['notes']['purpose'] ?? null,
+        );
+    }
+
+    /**
+     * Razorpay puts a placeholder here when the donor gave no address, and a
+     * receipt must not be sent to it — nor an account raised under it.
+     */
+    private function realEmail(?string $email): ?string
+    {
+        return $email && ! str_ends_with(strtolower($email), '@razorpay.com') ? $email : null;
+    }
+
+    /** The subscription an invoice belongs to; the payment never says directly. */
+    private function subscriptionIdFor(?string $invoiceId): ?string
+    {
+        if (blank($invoiceId)) {
+            return null;
+        }
+
+        $invoice = $this->http()->get(self::API."/invoices/{$invoiceId}");
+
+        return $invoice->successful() ? ($invoice->json()['subscription_id'] ?? null) : null;
+    }
+
+    /** @return array<string, mixed> */
+    private function planForSubscription(string $subscriptionId): array
+    {
+        $subscription = $this->http()->get(self::API."/subscriptions/{$subscriptionId}");
+
+        if (! $subscription->successful()) {
+            return [];
+        }
+
+        $planId = $subscription->json()['plan_id'] ?? null;
+
+        if (blank($planId)) {
+            return [];
+        }
+
+        $plan = $this->http()->get(self::API."/plans/{$planId}");
+
+        return $plan->successful() ? $plan->json() : ['id' => $planId];
     }
 
     public function confirmReturn(Transaction $transaction, Request $request): bool

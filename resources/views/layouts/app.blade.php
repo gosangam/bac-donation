@@ -72,5 +72,9 @@
     @yield('content')
   </main>
 </div>
+
+{{-- Partials that need behaviour push it here, so their script lands once and
+     after the markup it drives. --}}
+@stack('scripts')
 </body>
 </html>

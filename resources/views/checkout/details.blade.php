@@ -38,24 +38,50 @@
         <div class="grid sm:grid-cols-2 gap-4">
           @php
             $fields = [
-              ['name', 'Full name', 'text', $user->name, true],
-              ['email', 'Email', 'email', $user->email, true],
-              ['phone', 'Phone', 'tel', $user->phone, true],
-              ['pan', 'PAN (optional)', 'text', $user->pan, false],
+              ['name', 'Full name', 'text', $user->name],
+              ['email', 'Email', 'email', $user->email],
+              ['phone', 'Phone', 'tel', $user->phone],
             ];
           @endphp
-          @foreach ($fields as [$field, $label, $type, $value, $required])
+          @foreach ($fields as [$field, $label, $type, $value])
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">{{ $label }}</label>
-              <input type="{{ $type }}" name="{{ $field }}" value="{{ old($field, $value) }}"
-                     @if ($required) required @endif
-                     @if ($field === 'pan') style="text-transform:uppercase" maxlength="10" placeholder="ABCDE1234F" @endif
+              <input type="{{ $type }}" name="{{ $field }}" value="{{ old($field, $value) }}" required
                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
-              @if ($field === 'pan')
-                <p class="text-xs text-slate-500 mt-1">Needed only if you want to claim 80G.</p>
-              @endif
+              @error($field)<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
             </div>
           @endforeach
+        </div>
+      </section>
+
+      {{-- Identity proof. Required for rupee donations because Form 10BD
+           reporting files the donor's ID against the receipt; a foreign-currency
+           donation is not reported that way, so it is offered but not demanded. --}}
+      @php
+        $needsId = $currency === 'INR';
+        $idType = old('id_type', $user->id_type);
+        $idNumber = old('id_number', $user->id_number);
+      @endphp
+      <section class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="font-semibold text-slate-900 mb-1">
+          Identity proof
+          @unless ($needsId)<span class="text-sm font-normal text-slate-400">(optional)</span>@endunless
+        </h2>
+        <p class="text-xs text-slate-500 mb-4">
+          @if ($needsId)
+            Required for donations in rupees, so your 80G receipt can be reported to the Income Tax Department.
+          @else
+            Only needed if you intend to claim a deduction under Indian tax law.
+          @endif
+        </p>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+          @include('partials.identity-proof', [
+            'type' => $idType,
+            'number' => $idNumber,
+            'required' => $needsId,
+            'label' => 'Type',
+          ])
         </div>
       </section>
 
@@ -148,4 +174,5 @@
       </div>
     </form>
   </div>
+
 @endsection

@@ -82,7 +82,8 @@ class LinkOrCreateDonorAccount implements ShouldQueue
             // the reset link. A null password would break Auth::attempt oddly.
             'password' => Str::password(32),
             'phone' => $transaction->donor_phone,
-            'pan' => $transaction->donor_pan,
+            'id_type' => $transaction->donor_id_type,
+            'id_number' => $transaction->donor_id_number,
         ] + $this->addressFrom($transaction));
         $user->save();
 
@@ -94,7 +95,10 @@ class LinkOrCreateDonorAccount implements ShouldQueue
     {
         $fill = array_filter([
             'phone' => $user->phone ?: $transaction->donor_phone,
-            'pan' => $user->pan ?: $transaction->donor_pan,
+            // Type and number move together — a type from one donation with a
+            // number from another would describe neither.
+            'id_type' => $user->id_number ? null : $transaction->donor_id_type,
+            'id_number' => $user->id_number ? null : $transaction->donor_id_number,
         ]);
 
         if ($fill) {

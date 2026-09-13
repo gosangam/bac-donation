@@ -7,7 +7,9 @@ use App\Models\Transaction;
 use App\Payments\GatewayManager;
 use App\Services\PaymentRecorder;
 use App\Support\GuestCheckout;
+use App\Rules\IdentityNumber;
 use App\Support\Currency;
+use App\Support\IdentityProof;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -93,6 +95,17 @@ class CheckoutController extends Controller
         ]);
     }
 
+    /**
+     * Whether this submission must carry an identity proof.
+     *
+     * Read from the posted currency rather than the resolved one: the currency
+     * is validated in the same call, and an invalid value fails there anyway.
+     */
+    private function needsIdentityProof(Request $request): bool
+    {
+        return strtoupper((string) $request->input('currency')) === 'INR';
+    }
+
     /** Step 3 — persist the donor details, create the transaction, hand off. */
     public function start(Request $request)
     {
@@ -112,11 +125,38 @@ class CheckoutController extends Controller
             'state' => ['nullable', 'string', 'max:120'],
             'postal_code' => ['required', 'string', 'max:20'],
             'country' => ['required', 'string', 'size:2'],
-            'pan' => ['nullable', 'string', 'regex:/^[A-Z]{5}[0-9]{4}[A-Z]$/'],
+            // Form 10BD reporting needs an identity proof against every Indian
+            // donation, so INR cannot be given anonymously. A foreign-currency
+            // donation is not reported that way and is not asked for one.
+            'id_type' => [
+                Rule::requiredIf($this->needsIdentityProof($request)),
+                'nullable',
+                Rule::in(array_keys(IdentityProof::TYPES)),
+            ],
+            'id_number' => [
+                Rule::requiredIf($this->needsIdentityProof($request)),
+                'nullable',
+                'string',
+                'max:32',
+                new IdentityNumber($request->input('id_type')),
+            ],
             'purpose' => ['nullable', 'string', 'max:120'],
         ], [
-            'pan.regex' => 'A PAN looks like ABCDE1234F.',
+            'id_type.required' => 'Choose an identity proof — it is required for donations in rupees.',
+            'id_number.required' => 'Enter your :attribute so an 80G receipt can be issued.',
+        ], [
+            'id_type' => 'identity proof',
+            'id_number' => 'identity number',
         ]);
+
+        // Stored without the spaces and hyphens donors type.
+        $data['id_number'] = filled($data['id_number'] ?? null)
+            ? IdentityProof::normalise($data['id_number'])
+            : null;
+
+        if (blank($data['id_number'])) {
+            $data['id_type'] = null;   // a type with no number records nothing
+        }
 
         $user = $request->user();
         $isGuest = $user === null;
@@ -160,7 +200,7 @@ class CheckoutController extends Controller
         // A guest has no profile yet — the account is created after payment.
         $user?->update(collect($data)->only([
             'name', 'phone', 'address_line1', 'address_line2',
-            'city', 'state', 'postal_code', 'country', 'pan',
+            'city', 'state', 'postal_code', 'country', 'id_type', 'id_number',
         ])->all());
 
         $address = collect([
@@ -178,13 +218,16 @@ class CheckoutController extends Controller
             'amount' => $amount,
             'currency' => $currency,
             'status' => 'pending',
-            'purpose' => $data['purpose'] ?: ($plan?->name ?? 'General Donation'),
+            // ?? as well as ?:  — validate() omits a key the request never sent,
+            // so an optional field cannot be indexed directly.
+            'purpose' => ($data['purpose'] ?? null) ?: ($plan?->name ?? 'General Donation'),
             // Snapshotted: the receipt must not change if the profile later does.
             'donor_name' => $data['name'],
             'donor_email' => $data['email'],
             'donor_phone' => $data['phone'],
             'donor_address' => $address,
-            'donor_pan' => $data['pan'] ?? null,
+            'donor_id_type' => $data['id_type'] ?? null,
+            'donor_id_number' => $data['id_number'] ?? null,
         ]);
 
         try {

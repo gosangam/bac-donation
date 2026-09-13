@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\IdentityNumber;
+use App\Support\IdentityProof;
+
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -35,10 +38,25 @@ class DashboardController extends Controller
             'state' => ['nullable', 'string', 'max:120'],
             'postal_code' => ['required', 'string', 'max:20'],
             'country' => ['required', 'string', 'size:2'],
-            'pan' => ['nullable', 'string', 'regex:/^[A-Z]{5}[0-9]{4}[A-Z]$/'],
-        ], [
-            'pan.regex' => 'A PAN looks like ABCDE1234F.',
+            // Optional here, unlike at checkout: the profile is not itself a
+            // donation, and the requirement belongs to the INR payment.
+            'id_type' => ['nullable', \Illuminate\Validation\Rule::in(array_keys(IdentityProof::TYPES))],
+            'id_number' => [
+                'nullable', 'string', 'max:32',
+                new IdentityNumber($request->input('id_type')),
+            ],
+        ], [], [
+            'id_type' => 'identity proof',
+            'id_number' => 'identity number',
         ]);
+
+        $data['id_number'] = filled($data['id_number'] ?? null)
+            ? IdentityProof::normalise($data['id_number'])
+            : null;
+
+        if (blank($data['id_number'])) {
+            $data['id_type'] = null;
+        }
 
         $request->user()->update($data);
 

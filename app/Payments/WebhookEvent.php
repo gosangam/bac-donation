@@ -12,6 +12,10 @@ class WebhookEvent
         public readonly ?string $paymentId = null,
         public readonly ?string $orderId = null,
         public readonly ?string $subscriptionId = null,
+        // Razorpay only: a subscription charge's payment carries an invoice id
+        // and NOT the subscription id. The subscription has to be resolved from
+        // it, so the two must not be conflated.
+        public readonly ?string $invoiceId = null,
         public readonly ?int $amount = null,
         public readonly ?string $currency = null,
         public readonly ?string $method = null,

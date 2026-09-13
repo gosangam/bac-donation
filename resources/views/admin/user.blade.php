@@ -13,8 +13,9 @@
         @if ($donor->full_address)
           <div class="text-sm text-slate-500 mt-1">{{ $donor->full_address }}</div>
         @endif
-        @if ($donor->pan)
-          <div class="text-sm text-slate-500 mt-1">PAN {{ $donor->pan }}</div>
+        @if ($donor->id_number)
+          {{-- Aadhaar is shown masked; see IdentityProof::forDisplay(). --}}
+          <div class="text-sm text-slate-500 mt-1">{{ \App\Support\IdentityProof::describe($donor->id_type, $donor->id_number) }}</div>
         @endif
       </div>
       <div class="sm:text-right">

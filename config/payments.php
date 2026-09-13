@@ -17,6 +17,15 @@ return [
 
     // Guard rails on the free-amount field so a typo cannot create a ₹0 or
     // ₹10,00,000 "donation" that then has to be refunded.
+    /**
+     * Record payments the dashboard has no row for, by asking the gateway who
+     * paid and creating the transaction (and donor account) from the answer.
+     *
+     * On means subscriptions predating this dashboard keep producing receipts.
+     * Off means their webhooks are logged and dropped, as they were before.
+     */
+    'adopt_unknown_payments' => (bool) env('ADOPT_UNKNOWN_PAYMENTS', true),
+
     'one_off' => [
         'min' => (int) env('ONE_OFF_MIN', 100),        // minor units
         'max' => (int) env('ONE_OFF_MAX', 100000000),
