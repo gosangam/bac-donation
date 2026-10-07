@@ -232,9 +232,19 @@ Duplicate-event handling differs per gateway and is deliberate:
 
 - **Razorpay** fires `payment.captured` *and* `subscription.charged` for one subscription charge —
   the latter is ignored.
-- **Stripe** `checkout.session.completed` covers one-offs and the first subscription charge;
-  `invoice.paid` covers renewals, with `billing_reason: subscription_create` ignored so the first
-  invoice is not receipted twice.
+- **Stripe** `checkout.session.completed` (or `async_payment_succeeded` for delayed methods) covers
+  one-offs, including Payment Links; `invoice.paid` / `invoice.payment_succeeded` cover every
+  subscription charge; `payment_intent.succeeded` covers payments made with neither (Dashboard
+  charges, Payment Element, API). An intent that belongs to an invoice is skipped — on API versions
+  from 2025-03-31 that takes a `GET /invoice_payments` lookup, and if it fails the delivery returns
+  500 so Stripe retries rather than risking a double receipt. A standalone payment's donor is read
+  from its charge's billing details, then its Customer, then `receipt_email`. A
+  subscription's first charge arrives as both, and both are keyed on the first **invoice id**, so it
+  is receipted once. Invoices with `amount_paid: 0` (trials, credits) are ignored. Both the
+  pre-2025-03-31 and the newer `parent.subscription_details` invoice shapes are read. Subscribe the
+  endpoint to `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`, `invoice.paid`, `payment_intent.succeeded`,
+  `customer.subscription.deleted` and `payment_intent.payment_failed`.
 - **PayPal** only `PAYMENT.CAPTURE.COMPLETED` / `PAYMENT.SALE.COMPLETED`. `CHECKOUT.ORDER.APPROVED`
   and `BILLING.SUBSCRIPTION.ACTIVATED` move no money.
 

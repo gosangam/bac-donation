@@ -465,9 +465,12 @@ class PaymentRecorder
             return;
         }
 
+        // The gateway's id wins over whatever was stored at checkout: Stripe has
+        // no subscription until the session completes, so the row was created
+        // holding the cs_… session id, and renewals arrive naming sub_….
         $subscription->fill([
             'status' => 'active',
-            'gateway_subscription_id' => $subscription->gateway_subscription_id ?: $subscriptionId,
+            'gateway_subscription_id' => $subscriptionId ?: $subscription->gateway_subscription_id,
             'started_at' => $subscription->started_at ?? now(),
         ])->save();
 

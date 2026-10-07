@@ -146,18 +146,7 @@ class StripeGateway implements PaymentGateway
         $paymentStatus = $session['payment_status'] ?? '';
 
         if ($paymentStatus === 'paid') {
-            return new WebhookEvent(
-                type: 'payment_succeeded',
-                reference: $session['client_reference_id'] ?? null,
-                paymentId: $session['payment_intent'] ?? $session['id'] ?? null,
-                orderId: $session['id'] ?? null,
-                subscriptionId: $session['subscription'] ?? null,
-                amount: $session['amount_total'] ?? null,
-                currency: strtoupper((string) ($session['currency'] ?? '')),
-                method: 'Card (Stripe)',
-                status: 'paid',
-                raw: ['source' => 'status-poll', 'session' => $session],
-            );
+            return $this->paidSessionEvent($session, ['source' => 'status-poll', 'session' => $session]);
         }
 
         // A session the donor abandoned expires rather than failing outright.
@@ -217,10 +206,12 @@ class StripeGateway implements PaymentGateway
     /**
      * Identify a payment this app has no row for.
      *
-     * Stripe is the easy case: it expands the customer and the line items into
-     * the event itself, so nothing here needs an API call. Written from the
-     * documented payload shape — unlike the Razorpay and PayPal paths, it has
-     * not been exercised against a live account.
+     * The donor travels in the event itself — customer_details on a Checkout
+     * Session, customer_email on an invoice — so identifying them costs nothing.
+     * Only the plan may need a lookup: a subscription-mode session carries no
+     * line items, and from API version 2025-03-31 an invoice line names its
+     * price by id instead of embedding it. A failed lookup costs the plan, never
+     * the donor, so the payment is still recorded and linked.
      */
     public function describePayment(WebhookEvent $event): ?RemotePayment
     {
@@ -230,32 +221,31 @@ class StripeGateway implements PaymentGateway
             return null;
         }
 
-        $email = $object['customer_details']['email']
-            ?? $object['customer_email']
-            ?? null;
+        if (($object['object'] ?? '') === 'payment_intent') {
+            return $this->describePaymentIntent($object);
+        }
 
-        $name = $object['customer_details']['name']
-            ?? $object['customer_name']
-            ?? null;
+        $email = $object['customer_details']['email'] ?? $object['customer_email'] ?? null;
 
         if (blank($email) && blank($event->subscriptionId)) {
             return null;
         }
 
-        // On an invoice the price sits on the first line item; a one-off session
-        // has no plan at all.
-        $price = $object['lines']['data'][0]['price'] ?? [];
-        $currency = strtoupper((string) ($price['currency'] ?? $object['currency'] ?? ''));
+        $line = $object['lines']['data'][0] ?? [];
+        $price = $this->priceFor($object, $line, $event->subscriptionId);
+        $product = is_array($price['product'] ?? null) ? $price['product'] : [];
+        $planName = $product['name'] ?? ($line['description'] ?? ($price['nickname'] ?? null));
 
         return new RemotePayment(
-            donorName: $name,
+            donorName: $object['customer_details']['name'] ?? $object['customer_name'] ?? null,
             donorEmail: $email,
-            donorPhone: $object['customer_details']['phone'] ?? null,
+            donorPhone: $object['customer_details']['phone'] ?? $object['customer_phone'] ?? null,
+            donorAddress: $this->formatAddress($object['customer_details']['address'] ?? $object['customer_address'] ?? null),
             subscriptionId: $event->subscriptionId,
             planId: $price['id'] ?? null,
-            planName: $object['lines']['data'][0]['description'] ?? null,
+            planName: $planName,
             planAmount: isset($price['unit_amount']) ? (int) $price['unit_amount'] : null,
-            planCurrency: $currency ?: null,
+            planCurrency: strtoupper((string) ($price['currency'] ?? '')) ?: null,
             planInterval: match ($price['recurring']['interval'] ?? null) {
                 'day' => 'daily',
                 'week' => 'weekly',
@@ -264,8 +254,188 @@ class StripeGateway implements PaymentGateway
                 default => null,
             },
             planIntervalCount: $price['recurring']['interval_count'] ?? null,
-            purpose: $object['lines']['data'][0]['description'] ?? null,
+            purpose: $planName ?? ($object['metadata']['purpose'] ?? null),
         );
+    }
+
+    /**
+     * The donor behind a payment made without Checkout or an invoice.
+     *
+     * A PaymentIntent names its charge and customer only by id, so this is the
+     * one Stripe path that needs lookups for the donor. The charge's billing
+     * details come first — they are what the donor typed for this payment —
+     * then the Customer, then receipt_email.
+     *
+     * @param  array<string, mixed>  $intent
+     */
+    private function describePaymentIntent(array $intent): ?RemotePayment
+    {
+        $charge = is_array($intent['latest_charge'] ?? null)
+            ? $intent['latest_charge']
+            : (($chargeId = $this->idOf($intent['latest_charge'] ?? null)) ? $this->fetch('/charges/'.$chargeId) : []);
+        $billing = (array) ($charge['billing_details'] ?? []);
+
+        $customer = is_array($intent['customer'] ?? null) ? $intent['customer'] : [];
+        $customerId = $this->idOf($intent['customer'] ?? null);
+
+        if (! $customer && $customerId && (blank($billing['email'] ?? null) || blank($billing['name'] ?? null))) {
+            $customer = $this->fetch('/customers/'.$customerId);
+        }
+
+        $email = $billing['email'] ?? $customer['email'] ?? $intent['receipt_email'] ?? null;
+
+        if (blank($email)) {
+            return null;
+        }
+
+        return new RemotePayment(
+            donorName: $billing['name'] ?? $customer['name'] ?? null,
+            donorEmail: $email,
+            donorPhone: $billing['phone'] ?? $customer['phone'] ?? null,
+            donorAddress: $this->formatAddress($billing['address'] ?? $customer['address'] ?? null),
+            purpose: $intent['metadata']['purpose'] ?? ($intent['description'] ?? null),
+        );
+    }
+
+    /**
+     * Whether a PaymentIntent is an invoice's payment, which invoice.paid
+     * records under the invoice id. Recording it here too would receipt one
+     * subscription charge twice.
+     *
+     * Before API version 2025-03-31 the intent names its invoice; from that
+     * version it does not, and the link is only found through InvoicePayments.
+     * A failed lookup throws rather than guessing: the delivery then fails and
+     * Stripe retries it, where a wrong guess would either drop a payment or
+     * receipt it twice.
+     *
+     * @param  array<string, mixed>  $intent
+     */
+    private function belongsToInvoice(array $intent): bool
+    {
+        if (array_key_exists('invoice', $intent)) {
+            return filled($intent['invoice']);
+        }
+
+        return ! empty($this->http()->get(self::API.'/invoice_payments', [
+            'payment' => ['type' => 'payment_intent', 'payment_intent' => $intent['id'] ?? ''],
+            'limit' => 1,
+        ])->throw()->json('data'));
+    }
+
+    /**
+     * The recurring price behind a payment, or [] for a one-off.
+     *
+     * @param  array<string, mixed>  $object  a Checkout Session or an Invoice
+     * @param  array<string, mixed>  $line  the invoice's first line, if any
+     * @return array<string, mixed>
+     */
+    private function priceFor(array $object, array $line, ?string $subscriptionId): array
+    {
+        // Before 2025-03-31 the price is embedded in the invoice line.
+        if (is_array($line['price'] ?? null)) {
+            return $line['price'];
+        }
+
+        $priceId = $line['pricing']['price_details']['price'] ?? null;
+
+        if (is_string($priceId)) {
+            return $this->fetch('/prices/'.$priceId, ['expand' => ['product']]);
+        }
+
+        if ($subscriptionId && ($object['object'] ?? '') === 'checkout.session') {
+            $subscription = $this->fetch('/subscriptions/'.$subscriptionId, ['expand' => ['items.data.price.product']]);
+
+            return $subscription['items']['data'][0]['price'] ?? [];
+        }
+
+        return [];
+    }
+
+    /**
+     * GET that answers [] instead of throwing: used only to enrich a payment
+     * whose donor is already known.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetch(string $path, array $query = []): array
+    {
+        $response = $this->http()->get(self::API.$path, $query);
+
+        return $response->successful() ? (array) $response->json() : [];
+    }
+
+    private function formatAddress(mixed $address): ?string
+    {
+        if (! is_array($address)) {
+            return null;
+        }
+
+        $line = collect(['line1', 'line2', 'city', 'state', 'postal_code', 'country'])
+            ->map(fn (string $key) => trim((string) ($address[$key] ?? '')))
+            ->filter()
+            ->implode(', ');
+
+        return $line !== '' ? $line : null;
+    }
+
+    /**
+     * A paid Checkout Session, whether delivered by webhook or found by polling.
+     *
+     * A subscription-mode session has no payment_intent of its own: its money
+     * is the first invoice's. Keying it on that invoice id is what lets the
+     * session and invoice.paid — both of which arrive for the first charge —
+     * resolve to one payment instead of two receipts.
+     *
+     * @param  array<string, mixed>  $session
+     * @param  array<string, mixed>  $raw
+     */
+    private function paidSessionEvent(array $session, array $raw): WebhookEvent
+    {
+        $paymentId = ($session['mode'] ?? '') === 'subscription'
+            ? $this->idOf($session['invoice'] ?? null)
+            : $this->idOf($session['payment_intent'] ?? null);
+
+        return new WebhookEvent(
+            type: 'payment_succeeded',
+            reference: $session['client_reference_id'] ?? ($session['metadata']['reference'] ?? null),
+            paymentId: $paymentId ?? ($session['id'] ?? null),
+            orderId: $session['id'] ?? null,
+            subscriptionId: $this->idOf($session['subscription'] ?? null),
+            amount: $session['amount_total'] ?? null,
+            currency: strtoupper((string) ($session['currency'] ?? '')),
+            method: 'Card (Stripe)',
+            status: 'paid',
+            raw: $raw,
+        );
+    }
+
+    /** Stripe returns either an id or, when expanded, the object carrying it. */
+    private function idOf(mixed $value): ?string
+    {
+        $id = is_array($value) ? ($value['id'] ?? null) : $value;
+
+        return is_string($id) && $id !== '' ? $id : null;
+    }
+
+    /**
+     * Where an invoice keeps its subscription. API version 2025-03-31 moved it
+     * under `parent`; the endpoint's pinned version decides which arrives.
+     *
+     * @param  array<string, mixed>  $invoice
+     * @return array{0: ?string, 1: array<string, mixed>} [subscription id, its metadata]
+     */
+    private function invoiceSubscription(array $invoice): array
+    {
+        $details = $invoice['parent']['subscription_details'] ?? null;
+
+        if (is_array($details)) {
+            return [$this->idOf($details['subscription'] ?? null), (array) ($details['metadata'] ?? [])];
+        }
+
+        return [
+            $this->idOf($invoice['subscription'] ?? null),
+            (array) ($invoice['subscription_details']['metadata'] ?? []),
+        ];
     }
 
     public function parseWebhook(Request $request): WebhookEvent
@@ -274,41 +444,48 @@ class StripeGateway implements PaymentGateway
         $type = $body['type'] ?? '';
         $object = $body['data']['object'] ?? [];
 
-        // checkout.session.completed covers one-offs and the first subscription
-        // charge; invoice.paid covers every renewal after that. Between them the
-        // whole lifecycle is receipted exactly once.
-        if ($type === 'checkout.session.completed') {
+        // Checkout Sessions cover one-offs (ours and Payment Links alike) and a
+        // subscription's first charge; invoice.paid covers every subscription
+        // charge, the first included; payment_intent.succeeded covers payments
+        // made with neither. The first charge therefore arrives twice,
+        // under one invoice id, and is receipted once.
+        if (in_array($type, ['checkout.session.completed', 'checkout.session.async_payment_succeeded'], true)) {
+            // Delayed methods complete the session unpaid, then send
+            // async_payment_succeeded once the money actually lands.
             if (($object['payment_status'] ?? '') !== 'paid') {
                 return WebhookEvent::ignored('session completed but not paid', $body);
             }
 
+            return $this->paidSessionEvent($object, $body);
+        }
+
+        if ($type === 'checkout.session.async_payment_failed') {
             return new WebhookEvent(
-                type: 'payment_succeeded',
+                type: 'payment_failed',
                 reference: $object['client_reference_id'] ?? ($object['metadata']['reference'] ?? null),
-                paymentId: $object['payment_intent'] ?? $object['id'] ?? null,
+                paymentId: $this->idOf($object['payment_intent'] ?? null),
                 orderId: $object['id'] ?? null,
-                subscriptionId: $object['subscription'] ?? null,
-                amount: $object['amount_total'] ?? null,
-                currency: strtoupper((string) ($object['currency'] ?? '')),
-                method: 'Card (Stripe)',
-                status: 'paid',
                 raw: $body,
             );
         }
 
-        if ($type === 'invoice.paid') {
-            // The first invoice is already covered by checkout.session.completed;
-            // receipting it again would double-issue for one payment.
-            if (($object['billing_reason'] ?? '') === 'subscription_create') {
-                return WebhookEvent::ignored('first invoice handled via checkout.session.completed', $body);
+        // Both fire for one invoice and either may be the one subscribed; the
+        // shared invoice id makes the second a no-op.
+        if (in_array($type, ['invoice.paid', 'invoice.payment_succeeded'], true)) {
+            // A trial or a fully credited invoice is "paid" with no money moving,
+            // and a receipt for nothing is a false document.
+            if ((int) ($object['amount_paid'] ?? 0) <= 0) {
+                return WebhookEvent::ignored('invoice paid with no money received', $body);
             }
+
+            [$subscriptionId, $metadata] = $this->invoiceSubscription($object);
 
             return new WebhookEvent(
                 type: 'payment_succeeded',
-                reference: $object['subscription_details']['metadata']['reference'] ?? null,
-                paymentId: $object['payment_intent'] ?? $object['id'] ?? null,
-                subscriptionId: $object['subscription'] ?? null,
-                amount: $object['amount_paid'] ?? null,
+                reference: $metadata['reference'] ?? null,
+                paymentId: $object['id'] ?? null,
+                subscriptionId: $subscriptionId,
+                amount: $object['amount_paid'],
                 currency: strtoupper((string) ($object['currency'] ?? '')),
                 method: 'Card (Stripe)',
                 status: 'paid',
@@ -320,6 +497,27 @@ class StripeGateway implements PaymentGateway
             return new WebhookEvent(
                 type: 'subscription_cancelled',
                 subscriptionId: $object['id'] ?? null,
+                raw: $body,
+            );
+        }
+
+        // Everything not taken through Checkout or an invoice: Dashboard
+        // charges, the Payment Element, direct API payments. A Checkout
+        // one-off sends this too, under the same pi_… id, so whichever of the
+        // two lands second changes nothing.
+        if ($type === 'payment_intent.succeeded') {
+            if ($this->belongsToInvoice($object)) {
+                return WebhookEvent::ignored('invoice payment recorded via invoice.paid', $body);
+            }
+
+            return new WebhookEvent(
+                type: 'payment_succeeded',
+                reference: $object['metadata']['reference'] ?? null,
+                paymentId: $object['id'] ?? null,
+                amount: $object['amount_received'] ?? ($object['amount'] ?? null),
+                currency: strtoupper((string) ($object['currency'] ?? '')),
+                method: 'Card (Stripe)',
+                status: 'paid',
                 raw: $body,
             );
         }
