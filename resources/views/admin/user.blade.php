@@ -28,11 +28,21 @@
           <div class="text-xl font-semibold text-slate-400">Nothing given yet</div>
         @endforelse
         <div class="text-xs text-slate-500 mt-2">Joined {{ $donor->created_at->format('d M Y') }}</div>
+        <a href="{{ route('admin.users.edit', $donor) }}"
+           class="inline-block mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Edit account</a>
       </div>
     </div>
   </div>
 
-  <h2 class="font-semibold text-slate-900 mt-8 mb-3">Subscriptions</h2>
+  <div class="flex flex-wrap items-end justify-between gap-3 mt-8 mb-3">
+    <h2 class="font-semibold text-slate-900">Subscriptions</h2>
+    @include('admin.partials.attach-form', [
+        'action' => route('admin.users.subscriptions.attach', $donor),
+        'name' => 'subscription',
+        'placeholder' => 'Gateway subscription id (sub_…, I-…)',
+        'hint' => 'Its past payments move here too.',
+    ])
+  </div>
   <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
     @forelse ($subscriptions as $subscription)
       <div class="px-5 py-4 border-b border-slate-100 last:border-0 flex flex-wrap items-center justify-between gap-4">
@@ -54,7 +64,15 @@
     @endforelse
   </div>
 
-  <h2 class="font-semibold text-slate-900 mt-8 mb-3">Transactions</h2>
+  <div class="flex flex-wrap items-end justify-between gap-3 mt-8 mb-3">
+    <h2 class="font-semibold text-slate-900">Transactions</h2>
+    @include('admin.partials.attach-form', [
+        'action' => route('admin.users.transactions.attach', $donor),
+        'name' => 'transaction',
+        'placeholder' => 'Receipt no., reference or payment id',
+        'hint' => null,
+    ])
+  </div>
   <div class="sm:hidden space-y-3">
     @forelse ($transactions as $txn)
       <div class="bg-white rounded-xl border border-slate-200 p-4">

@@ -11,12 +11,11 @@
 <div class="min-h-screen flex flex-col">
   @guest
   <nav class="sticky top-0 z-40 border-b border-line/70 bg-cream/90 backdrop-blur">
-    <div class="mx-auto flex h-[72px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-      <a href="{{ route('checkout.choose') }}" class="flex min-w-0 items-center gap-2.5">
-        <img src="{{ config('payments.org.logo_url') }}" alt="" class="h-9 w-9 shrink-0 rounded object-contain">
-        {{-- Name is dropped on the narrowest screens; it wraps to two lines and
-             squeezes the actions otherwise. --}}
-        <span class="hidden truncate text-lg font-semibold tracking-tight sm:block">{{ config('payments.org.name') }}</span>
+    <div class="mx-auto flex h-[84px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <a href="{{ route('checkout.choose') }}" aria-label="{{ config('payments.org.name') }}"
+         class="flex min-w-0 items-center gap-2.5">
+        {{-- Name is dropped on the narrowest screens, where it squeezes the actions. --}}
+        @include('partials.brand', ['nameVisibility' => 'hidden sm:flex'])
       </a>
       @if (request()->routeIs('checkout.choose'))
         <div class="hidden items-center gap-8 text-[15px] text-stone-600 lg:flex">
@@ -44,9 +43,8 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6">
       <div class="flex items-center gap-3 sm:gap-6 h-14 sm:h-16">
         <a href="{{ route(auth()->user()->is_admin ? 'admin.index' : 'dashboard') }}"
-           class="flex items-center gap-2 shrink-0 min-w-0">
-          <img src="{{ config('payments.org.logo_url') }}" alt="" class="h-9 w-9 rounded object-contain shrink-0">
-          <span class="font-semibold tracking-tight hidden md:block truncate">{{ config('payments.org.name') }}</span>
+           aria-label="{{ config('payments.org.name') }}" class="flex items-center gap-2.5 shrink-0 min-w-0">
+          @include('partials.brand', ['nameVisibility' => 'hidden md:flex'])
         </a>
 
         {{-- Inline on desktop; on mobile the links move to their own row below so
@@ -56,15 +54,7 @@
         </div>
 
         <div class="ml-auto flex items-center gap-3 shrink-0">
-          @if (auth()->user()->is_admin)
-            <span class="text-sm text-stone-600 hidden lg:block">{{ auth()->user()->name }}
-              <span class="ml-1 text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">admin</span></span>
-          @else
-            <a href="{{ route('profile') }}" class="text-sm text-stone-600 hover:text-forest hidden lg:block">{{ auth()->user()->name }}</a>
-          @endif
-          <form method="POST" action="{{ route('logout') }}" class="hidden sm:block">@csrf
-            <button class="text-sm text-stone-500 hover:text-forest whitespace-nowrap">Sign out</button>
-          </form>
+          @include('partials.profile-menu')
 
           @include('partials.mobile-nav')
         </div>
@@ -84,7 +74,7 @@
     </main>
   @endif
 
-  @unless (auth()->user()?->is_admin)
+  @unless (request()->routeIs('admin.*'))
     @include('partials.footer')
   @endunless
 </div>

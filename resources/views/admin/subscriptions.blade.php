@@ -1,13 +1,20 @@
 @extends('layouts.app')
 @section('title', 'Subscriptions')
 @section('content')
-  <h1 class="text-2xl font-semibold text-slate-900 mb-6">Subscriptions</h1>
+  <h1 class="text-2xl font-semibold text-slate-900 mb-1">Subscriptions</h1>
+  <p class="text-sm text-slate-500 mb-6">
+    Changing a subscription's donor moves its past payments with it; later renewals follow automatically.
+  </p>
+  @include('admin.partials.donor-emails')
   <div class="sm:hidden space-y-3">
     @forelse ($subscriptions as $subscription)
       <div class="bg-white rounded-xl border border-slate-200 p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="font-medium text-slate-900 truncate">{{ $subscription->user?->name ?? 'Unlinked guest' }}</div>
+            <div class="flex items-center gap-1 min-w-0">
+              <span class="font-medium text-slate-900 truncate">{{ $subscription->user?->name ?? 'Unlinked guest' }}</span>
+              @include('admin.partials.owner-toggle', ['target' => "owner-sub-m{$subscription->id}", 'current' => $subscription->user])
+            </div>
             <div class="text-xs text-slate-500 truncate">{{ $subscription->user?->email }}</div>
           </div>
           @include('partials.status-badge', ['status' => $subscription->status])
@@ -20,6 +27,11 @@
         @if ($subscription->gateway_subscription_id)
           <div class="text-xs text-slate-400 font-mono mt-1 break-all">{{ $subscription->gateway_subscription_id }}</div>
         @endif
+        @include('admin.partials.owner-form', [
+          'id' => "owner-sub-m{$subscription->id}",
+          'action' => route('admin.subscriptions.owner', $subscription),
+          'current' => $subscription->user,
+        ])
       </div>
     @empty
       <div class="bg-white rounded-xl border border-slate-200 p-8 text-center text-sm text-slate-500">
@@ -44,13 +56,24 @@
               {{-- A guest subscription has no owner until LinkOrCreateDonorAccount
                    runs, which is after the first payment clears. --}}
               @if ($subscription->user)
-                <a href="{{ route('admin.users.show', $subscription->user) }}"
-                   class="font-medium text-slate-900 hover:underline">{{ $subscription->user->name }}</a>
+                <div class="flex items-center gap-1">
+                  <a href="{{ route('admin.users.show', $subscription->user) }}"
+                     class="font-medium text-slate-900 hover:underline">{{ $subscription->user->name }}</a>
+                  @include('admin.partials.owner-toggle', ['target' => "owner-sub-d{$subscription->id}", 'current' => $subscription->user])
+                </div>
                 <div class="text-xs text-slate-500">{{ $subscription->user->email }}</div>
               @else
-                <div class="font-medium text-slate-500">Unlinked guest</div>
+                <div class="flex items-center gap-1">
+                  <span class="font-medium text-slate-500">Unlinked guest</span>
+                  @include('admin.partials.owner-toggle', ['target' => "owner-sub-d{$subscription->id}", 'current' => null])
+                </div>
                 <div class="text-xs text-slate-400">Attached once the first payment clears</div>
               @endif
+              @include('admin.partials.owner-form', [
+                'id' => "owner-sub-d{$subscription->id}",
+                'action' => route('admin.subscriptions.owner', $subscription),
+                'current' => $subscription->user,
+              ])
             </td>
             <td class="px-4 py-3">
               {{ $subscription->plan->name }}

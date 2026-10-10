@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\OwnershipController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
@@ -10,8 +12,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
-// The front door is the donation page, for signed-in donors and guests alike.
-// Admins are redirected by the 'donor' middleware on the group below.
+// The front door is the donation page, for guests, donors and admins alike.
 
 // ── Guest ───────────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -19,7 +20,6 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
-
 
     // Also how a guest donor first gets into the account created for them.
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
@@ -33,12 +33,9 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
 // ── Donor ───────────────────────────────────────────────────────────────────
-// 'donor' bounces admins out: giving, subscriptions and receipts belong to
-// donors, and an admin donating through their admin account is just noise in
-// the very tables they are meant to be reading.
-// Giving is open to guests: 'donor' only bounces admins, and a visitor with no
-// account passes through it. The account is created after payment, not before.
-Route::middleware('donor')->group(function () {
+// Giving is open to everyone, guests included. A guest's account is created
+// after payment, not before. Admins give like any donor, from their own account.
+Route::group([], function () {
     Route::get('/', [CheckoutController::class, 'choose'])->name('checkout.choose');
 
     // Kept so older links and bookmarks still land somewhere sensible.
@@ -66,7 +63,7 @@ Route::middleware('donor')->group(function () {
         ->name('transactions.receipt.preview');
 });
 
-Route::middleware(['auth', 'donor'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
     Route::put('/profile', [DashboardController::class, 'updateProfile'])->name('profile.update');
@@ -87,7 +84,20 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/transactions/{transaction}/receipt', [AdminController::class, 'receipt'])->name('receipt');
     Route::post('/transactions/{transaction}/resend', [AdminController::class, 'resendReceipt'])->name('receipt.resend');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
+    // Before /users/{user}, or "create" would be read as a user id.
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}/subscriptions', [OwnershipController::class, 'attachSubscription'])
+        ->name('users.subscriptions.attach');
+    Route::post('/users/{user}/transactions', [OwnershipController::class, 'attachTransaction'])
+        ->name('users.transactions.attach');
+    Route::put('/subscriptions/{subscription}/owner', [OwnershipController::class, 'subscription'])
+        ->name('subscriptions.owner');
+    Route::put('/transactions/{transaction}/owner', [OwnershipController::class, 'transaction'])
+        ->name('transactions.owner');
     Route::get('/gateway-plans/{gateway}', [AdminController::class, 'gatewayPlans'])->name('gateway-plans');
     Route::get('/subscriptions', [AdminController::class, 'subscriptions'])->name('subscriptions');
     Route::get('/plans', [AdminController::class, 'plans'])->name('plans');

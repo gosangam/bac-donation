@@ -37,9 +37,7 @@
     <div class="border-t border-slate-200 p-4">
       <div class="text-sm text-slate-900 font-medium truncate">{{ auth()->user()->name }}</div>
       <div class="text-xs text-slate-500 truncate">{{ auth()->user()->email }}</div>
-      @unless (auth()->user()->is_admin)
-        <a href="{{ route('profile') }}" class="block mt-3 text-sm text-slate-600 hover:text-slate-900">Your details</a>
-      @endunless
+      <a href="{{ route('profile') }}" class="block mt-3 text-sm text-slate-600 hover:text-slate-900">Your details</a>
       <form method="POST" action="{{ route('logout') }}" class="mt-3">@csrf
         <button class="text-sm text-slate-500 hover:text-slate-900">Sign out</button>
       </form>

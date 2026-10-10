@@ -2,6 +2,7 @@
 @section('title', 'All transactions')
 @section('content')
   <h1 class="text-2xl font-semibold text-slate-900 mb-6">All transactions</h1>
+  @include('admin.partials.donor-emails')
 
   <form method="GET" class="flex flex-wrap gap-2 mb-4">
     <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Name, email, receipt, payment id"
@@ -25,7 +26,10 @@
       <div class="bg-white rounded-xl border border-slate-200 p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <div class="font-medium text-slate-900 truncate">{{ $txn->donor_name }}</div>
+            <div class="flex items-center gap-1 min-w-0">
+              <span class="font-medium text-slate-900 truncate">{{ $txn->donor_name }}</span>
+              @include('admin.partials.owner-toggle', ['target' => "owner-txn-m{$txn->id}", 'current' => $txn->user])
+            </div>
             <div class="text-xs text-slate-500 truncate">{{ $txn->donor_email }}</div>
           </div>
           <div class="text-right shrink-0">
@@ -38,6 +42,12 @@
           {{ $txn->type === 'subscription' ? 'Auto' : 'One-off' }} ·
           {{ $txn->receipt_no ?? 'no receipt' }}
         </div>
+        <div class="text-xs text-slate-500 mt-2">Account: {{ $txn->user?->email ?? 'not linked' }}</div>
+        @include('admin.partials.owner-form', [
+          'id' => "owner-txn-m{$txn->id}",
+          'action' => route('admin.transactions.owner', $txn),
+          'current' => $txn->user,
+        ])
         @if ($txn->isPaid())
           <div class="flex items-center gap-4 mt-3 text-sm">
             <a href="{{ route('admin.receipt', $txn) }}" class="text-slate-900 font-medium underline">PDF</a>
@@ -68,8 +78,24 @@
           <tr class="border-t border-slate-100 hover:bg-slate-50">
             <td class="px-4 py-3 whitespace-nowrap">{{ $txn->created_at->format('d M Y') }}</td>
             <td class="px-4 py-3">
-              <div class="font-medium text-slate-900">{{ $txn->donor_name }}</div>
+              <div class="flex items-center gap-1">
+                <span class="font-medium text-slate-900">{{ $txn->donor_name }}</span>
+                @include('admin.partials.owner-toggle', ['target' => "owner-txn-d{$txn->id}", 'current' => $txn->user])
+              </div>
               <div class="text-xs text-slate-500">{{ $txn->donor_email }}</div>
+              {{-- The account can differ from the payer's email once an admin relinks it. --}}
+              <div class="text-xs mt-1">
+                @if ($txn->user)
+                  <a href="{{ route('admin.users.show', $txn->user) }}" class="text-slate-600 hover:underline">Account: {{ $txn->user->email }}</a>
+                @else
+                  <span class="text-slate-400">No account</span>
+                @endif
+              </div>
+              @include('admin.partials.owner-form', [
+                'id' => "owner-txn-d{$txn->id}",
+                'action' => route('admin.transactions.owner', $txn),
+                'current' => $txn->user,
+              ])
             </td>
             <td class="px-4 py-3 font-mono text-xs">{{ $txn->receipt_no ?? '—' }}</td>
             <td class="px-4 py-3">{{ $txn->gateway_label }}</td>

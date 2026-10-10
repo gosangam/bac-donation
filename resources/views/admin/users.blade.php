@@ -1,7 +1,11 @@
 @extends('layouts.app')
 @section('title', 'Donors')
 @section('content')
-  <h1 class="text-2xl font-semibold text-slate-900 mb-6">Donors</h1>
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <h1 class="text-2xl font-semibold text-slate-900">Donors</h1>
+    <a href="{{ route('admin.users.create') }}"
+       class="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800">New account</a>
+  </div>
   <div class="sm:hidden space-y-3">
     @foreach ($users as $user)
       <a href="{{ route('admin.users.show', $user) }}"
@@ -35,6 +39,7 @@
           <th class="text-left font-medium px-4 py-3">Joined</th>
           <th class="text-right font-medium px-4 py-3">Payments</th>
           <th class="text-right font-medium px-4 py-3">Total given</th>
+          <th class="px-4 py-3"></th>
         </tr>
       </thead>
       <tbody>
@@ -56,6 +61,7 @@
             </td>
             <td class="px-4 py-3 text-right">
               <a href="{{ route('admin.users.show', $user) }}" class="text-slate-600 hover:text-slate-900 underline">View</a>
+              <a href="{{ route('admin.users.edit', $user) }}" class="ml-3 text-slate-600 hover:text-slate-900 underline">Edit</a>
             </td>
           </tr>
         @endforeach

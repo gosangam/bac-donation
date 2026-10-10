@@ -26,9 +26,9 @@ class AdminAccessTest extends TestCase
     }
 
     #[DataProvider('donorRoutes')]
-    public function test_admins_are_kept_out_of_the_giving_flow(string $uri): void
+    public function test_admins_can_use_the_giving_flow_like_any_donor(string $uri): void
     {
-        $this->actingAs($this->admin())->get($uri)->assertRedirect(route('admin.index'));
+        $this->actingAs($this->admin())->get($uri)->assertOk();
     }
 
     public static function donorRoutes(): array
@@ -47,12 +47,6 @@ class AdminAccessTest extends TestCase
 
         $this->actingAs($donor)->get('/admin')->assertNotFound();
         $this->actingAs($donor)->get('/admin/users')->assertNotFound();
-    }
-
-    public function test_admins_are_redirected_off_the_public_homepage(): void
-    {
-        // Admins cannot donate, so the donation homepage is not for them.
-        $this->actingAs($this->admin())->get('/')->assertRedirect(route('admin.index'));
     }
 
     public function test_donors_and_guests_both_get_the_donation_homepage(): void

@@ -1,8 +1,8 @@
 @php
-  // Admins get their own navigation only. They cannot donate, so the giving
-  // links would lead straight to a redirect.
+  // Admins see the admin pages first, then their own giving: they donate like
+  // anyone else, and their dashboard holds their own subscriptions and payments.
   $nav = auth()->user()->is_admin
-    ? ['admin.index' => 'Overview', 'admin.transactions' => 'Transactions', 'admin.users' => 'Donors', 'admin.subscriptions' => 'Subscriptions', 'admin.plans' => 'Plans']
+    ? ['admin.index' => 'Overview', 'admin.transactions' => 'Transactions', 'admin.users' => 'Donors', 'admin.subscriptions' => 'Subscriptions', 'admin.plans' => 'Plans', 'checkout.choose' => 'Give', 'dashboard' => 'My donations']
     : ['dashboard' => 'Dashboard', 'checkout.choose' => 'Give', 'subscriptions.index' => 'Subscriptions', 'transactions.index' => 'Transactions'];
 @endphp
 @php $block = $block ?? false; @endphp

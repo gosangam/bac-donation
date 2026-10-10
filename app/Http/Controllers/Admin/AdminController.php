@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendDonationReceipt;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Payments\GatewayManager;
 use App\Services\ReceiptRenderer;
+use App\Support\Money;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -59,6 +64,7 @@ class AdminController extends Controller
         return view('admin.transactions', [
             'transactions' => $query->paginate(30)->withQueryString(),
             'filters' => $request->only('gateway', 'status', 'type', 'q'),
+            'donorEmails' => $this->donorEmails(),
         ]);
     }
 
@@ -91,7 +97,7 @@ class AdminController extends Controller
      * Plans that already exist inside a gateway, so an admin can pick one rather
      * than copying an id across from another dashboard and mistyping it.
      */
-    public function gatewayPlans(string $gateway, \App\Payments\GatewayManager $gateways)
+    public function gatewayPlans(string $gateway, GatewayManager $gateways)
     {
         try {
             $driver = $gateways->get($gateway);
@@ -116,7 +122,18 @@ class AdminController extends Controller
     {
         return view('admin.subscriptions', [
             'subscriptions' => Subscription::with('user', 'plan')->latest()->paginate(30),
+            'donorEmails' => $this->donorEmails(),
         ]);
+    }
+
+    /**
+     * Suggestions for the reassign-owner forms.
+     *
+     * @return Collection<int, string>
+     */
+    private function donorEmails(): Collection
+    {
+        return User::orderBy('email')->pluck('email');
     }
 
     public function plans()
@@ -145,14 +162,14 @@ class AdminController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'slug' => ['required', 'string', 'max:120', 'alpha_dash',
-                \Illuminate\Validation\Rule::unique('plans', 'slug')->ignore($plan?->id)],
+                Rule::unique('plans', 'slug')->ignore($plan?->id)],
             'description' => ['nullable', 'string', 'max:500'],
             'amount_major' => ['required', 'numeric', 'min:0.01'],
             'currency' => ['required', 'string', 'size:3'],
             // Optional: without it the plan is simply not offered to foreign
             // donors, since PayPal cannot bill an Indian merchant in rupees.
             'amount_usd_major' => ['nullable', 'numeric', 'min:0.01'],
-            'interval' => ['required', \Illuminate\Validation\Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
+            'interval' => ['required', Rule::in(['daily', 'weekly', 'monthly', 'yearly'])],
             'interval_count' => ['required', 'integer', 'min:1', 'max:12'],
             'razorpay_plan_id' => ['nullable', 'string', 'max:120'],
             'stripe_price_id' => ['nullable', 'string', 'max:120'],
@@ -170,12 +187,12 @@ class AdminController extends Controller
             'name' => $data['name'],
             'slug' => $data['slug'],
             'description' => $data['description'] ?? null,
-            'amount' => \App\Support\Money::toMinor((float) $data['amount_major'], $currency),
+            'amount' => Money::toMinor((float) $data['amount_major'], $currency),
             'currency' => $currency,
             // Set independently of `amount` — a donation tier is a decision,
             // not a live FX conversion of the rupee price.
             'amount_usd' => filled($data['amount_usd_major'] ?? null)
-                ? \App\Support\Money::toMinor((float) $data['amount_usd_major'], 'USD')
+                ? Money::toMinor((float) $data['amount_usd_major'], 'USD')
                 : null,
             'interval' => $data['interval'],
             'interval_count' => $data['interval_count'],
@@ -203,7 +220,7 @@ class AdminController extends Controller
         // Cleared so the job's own guard does not treat this as a duplicate.
         $transaction->forceFill(['receipt_emailed_at' => null, 'receipt_email_error' => null])->save();
 
-        \App\Jobs\SendDonationReceipt::dispatch($transaction);
+        SendDonationReceipt::dispatch($transaction);
 
         return back()->with('status', "Receipt {$transaction->receipt_no} queued for {$transaction->donor_email}.");
     }

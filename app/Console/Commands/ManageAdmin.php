@@ -29,7 +29,7 @@ class ManageAdmin extends Command
         }
 
         $user->promoteToAdmin();
-        $this->info("{$user->email} is now an admin. Note admins cannot donate.");
+        $this->info("{$user->email} is now an admin.");
 
         return self::SUCCESS;
     }

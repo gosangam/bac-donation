@@ -21,13 +21,13 @@ Seeded logins — **change these before deploying**:
 
 ## Roles
 
-**Admins cannot donate.** `/dashboard`, `/give`, `/subscriptions`, `/transactions` and `/profile`
-redirect an admin to `/admin`, and their navigation shows only the admin pages. An admin giving
-through the account they administer just adds noise to the very tables they are meant to be reading —
-staff who want to give use a donor account.
+**Admins can donate too.** An admin gives exactly like a donor, and their own subscriptions and
+payments live on their own `/dashboard`, separate from the admin pages.
 
-Admins get: **Overview** · **Transactions** (all, paginated, filterable) · **Donors** (with a page per
-donor showing their subscriptions and payments) · **Subscriptions** · **Plans**.
+Admins get: **Overview** · **Transactions** (all, paginated, filterable, each reassignable to another
+donor) · **Donors** (create and edit accounts, with a page per donor showing their subscriptions and
+payments, where more of either can be linked) · **Subscriptions** (each reassignable; its payments
+move with it) · **Plans** — plus **Give** and **My donations** for their own giving.
 
 `is_admin` is **not mass-assignable**, so no stray `create($request->all())` can grant it — which also
 means `$user->update(['is_admin' => true])` silently does nothing. Use:
@@ -46,7 +46,7 @@ redirect to login, no account required to give. `/give` redirects to `/` so olde
 | --- | --- |
 | Guest | landing copy, monthly plans, preset + custom one-off amounts, "My donations" and "Donate" in the header |
 | Signed-in donor | the same giving page with their nav and a link to their dashboard |
-| Admin | redirected to `/admin` — admins cannot donate |
+| Admin | the same giving page, with the admin nav |
 
 The only pages that require signing in are the ones that are *about* an account: dashboard,
 subscriptions, the full transaction list and profile.
@@ -355,8 +355,7 @@ that clears the guard and re-queues.
   `BAC/2026-27/00001`, `Visa credit ••••4366` parsed from the payload; tampered signature → 400;
   missing signature → 400; **replay → 200 with no duplicate row**; unknown gateway → 404
 - receipt for an unpaid transaction → 404; another donor's transaction → 403
-- **admins redirected off all five donor routes**, donors still reach them, donors get 404 on admin
-  pages, and each role's root lands on its own home
+- admins reach all five donor routes like any donor, and donors get 404 on admin pages
 - `$user->update(['is_admin' => true])` provably does nothing; `php artisan user:admin` works
 - donor detail page renders name, address, per-currency totals, subscriptions and paginated payments
 - **Razorpay plan fetch returns the real plan from the configured account**
@@ -365,8 +364,7 @@ that clears the guard and re-queues.
 
 **The public homepage**: `/` returns 200 to a guest with no redirect, showing the headline, the
 "no account needed" line, all four seeded plans, four preset amounts and a custom-amount field;
-`/give` 302s to `/`; a signed-in donor gets the same page with their nav plus a dashboard link; an
-admin is redirected to `/admin`. A test asserts that none of `/`, the details form, `/login`,
+`/give` 302s to `/`; a signed-in donor or admin gets the same page with their nav plus a dashboard link. A test asserts that none of `/`, the details form, `/login`,
 `/register` or `/forgot-password` redirects a guest.
 
 **Guest donations**, driven through a real browser session against live Razorpay:
