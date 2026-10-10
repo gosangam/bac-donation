@@ -14,11 +14,11 @@
 @endphp
 
 <div>
-  <label for="id_type" class="block text-sm font-medium text-slate-700 mb-1">
-    {{ $label }} @unless ($required)<span class="text-slate-400">(optional)</span>@endunless
+  <label for="id_type" class="field-label">
+    {{ $label }} @unless ($required)<span class="text-stone-400">(optional)</span>@endunless
   </label>
   <select id="id_type" name="id_type" @if ($required) required @endif data-id-type
-          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-slate-400 focus:outline-none">
+          class="field">
     <option value="">Select identity proof…</option>
     @foreach ($types as $value => $typeLabel)
       <option value="{{ $value }}"
@@ -34,7 +34,7 @@
 {{-- Revealed once a type is chosen: an unlabelled number box before then has
      nothing to tell the donor what to type. --}}
 <div data-id-number-field @class(['hidden' => ! $type])>
-  <label for="id_number" class="block text-sm font-medium text-slate-700 mb-1">
+  <label for="id_number" class="field-label">
     <span data-id-number-label>{{ \App\Support\IdentityProof::label($type) ?? 'Number' }}</span>
   </label>
   <input id="id_number" name="id_number" type="text" value="{{ $number }}"
@@ -43,7 +43,7 @@
          placeholder="{{ \App\Support\IdentityProof::example($type) }}"
          @if ($type) pattern="{{ \App\Support\IdentityProof::browserPattern($type) }}" @endif
          @if ($required && $type) required @endif
-         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+         class="field">
   @error('id_number')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
 </div>
 

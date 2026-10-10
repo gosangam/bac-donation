@@ -14,7 +14,7 @@ class ExampleTest extends TestCase
         // No login wall: the front door is where you give.
         $this->get('/')
             ->assertOk()
-            ->assertSee('Care for the animals of Braj')
+            ->assertSee('Care for the dogs and monkeys of Vrindavan')
             ->assertSee('no account needed', false);
     }
 

@@ -3,14 +3,14 @@
 @section('content')
   <div class="max-w-2xl">
     @auth
-      <a href="{{ route('transactions.index') }}" class="text-sm text-slate-500 hover:text-slate-900">← All transactions</a>
+      <a href="{{ route('transactions.index') }}" class="text-sm text-stone-500 hover:text-forest">← All transactions</a>
     @endauth
 
-    <div class="bg-white rounded-xl border border-slate-200 mt-4">
-      <div class="px-6 py-5 border-b border-slate-200 flex items-start justify-between gap-4">
+    <div class="card mt-4">
+      <div class="px-6 py-5 border-b border-line flex items-start justify-between gap-4">
         <div>
-          <div class="text-2xl font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
-          <div class="text-sm text-slate-500 mt-1">{{ $txn->purpose }}</div>
+          <div class="text-2xl font-semibold text-forest">{{ $txn->amount_formatted }}</div>
+          <div class="text-sm text-stone-500 mt-1">{{ $txn->purpose }}</div>
         </div>
         @include('partials.status-badge', ['status' => $txn->status])
       </div>
@@ -36,15 +36,15 @@
         @endphp
         @foreach ($rows as $label => $value)
           <div class="flex justify-between gap-6">
-            <dt class="text-slate-500 shrink-0">{{ $label }}</dt>
-            <dd class="text-slate-900 text-right break-all">{{ $value }}</dd>
+            <dt class="text-stone-500 shrink-0">{{ $label }}</dt>
+            <dd class="text-forest text-right break-all">{{ $value }}</dd>
           </div>
         @endforeach
       </dl>
 
       @guest
         @if ($txn->isPaid())
-          <div class="px-6 py-4 border-t border-slate-200 bg-emerald-50">
+          <div class="px-6 py-4 border-t border-line bg-emerald-50">
             <p class="text-sm text-emerald-900">
               Your receipt has been emailed to <strong>{{ $txn->donor_email }}</strong>. We're also
               setting up an account for that address so you can find your receipts later — watch for
@@ -54,14 +54,14 @@
         @endif
       @endguest
 
-      <div class="px-6 py-4 border-t border-slate-200 flex items-center gap-3">
+      <div class="px-6 py-4 border-t border-line flex items-center gap-3">
         @if ($txn->isPaid())
           <a href="{{ route('transactions.receipt', $txn) }}"
-             class="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800">Download PDF receipt</a>
+             class="btn-primary">Download PDF receipt</a>
           <a href="{{ route('transactions.receipt.preview', $txn) }}" target="_blank"
-             class="text-sm text-slate-600 hover:text-slate-900 underline">Preview</a>
+             class="text-sm text-stone-600 hover:text-forest underline">Preview</a>
         @else
-          <div class="text-sm text-slate-500">
+          <div class="text-sm text-stone-500">
             <p>
               A receipt is issued once the payment clears. We checked with
               {{ $txn->gateway_label }}
@@ -75,7 +75,7 @@
             @endif
             <div class="mt-3">
               <a href="{{ route('transactions.show', $txn) }}"
-                 class="inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                 class="btn-ghost">
                 Check again
               </a>
             </div>

@@ -11,6 +11,8 @@ return [
         'brand_color' => env('ORG_BRAND_COLOR', '#f31824'),
         'pan' => env('ORG_PAN', ''),
         'registration_80g' => env('ORG_80G', ''),
+        'registration_12a' => env('ORG_12A', ''),
+        'darpan_id' => env('ORG_DARPAN', ''),
     ],
 
     'default_currency' => env('DEFAULT_CURRENCY', 'INR'),

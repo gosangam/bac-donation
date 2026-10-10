@@ -275,7 +275,8 @@ explicitly rather than failing at the API.
 Everything is in `.env`; `config/payments.php` has the shape. A gateway with no keys is **hidden from
 the donor**, and one that cannot take the chosen currency is filtered out — the failure would
 otherwise happen mid-checkout. PayPal is restricted to USD/EUR/GBP because most Indian accounts
-cannot settle INR through it.
+cannot settle INR through it. Stripe is restricted to USD — it is the gateway for foreign donors, and its
+plan prices exist in USD only.
 
 ## Emailing receipts
 

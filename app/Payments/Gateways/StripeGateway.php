@@ -32,7 +32,9 @@ class StripeGateway implements PaymentGateway
 
     public function supportedCurrencies(): array
     {
-        return ['INR', 'USD', 'EUR', 'GBP'];
+        // Stripe is the foreign-donor gateway here, and its plan prices exist in
+        // USD only. Indian donors give through Razorpay.
+        return ['USD'];
     }
 
     private function http()
@@ -112,6 +114,10 @@ class StripeGateway implements PaymentGateway
 
         $session = $this->http()->post(self::API.'/checkout/sessions', [
             'mode' => 'subscription',
+            // A price can carry several currencies; without this Checkout picks
+            // one from the donor's location, which need not be the one they
+            // chose here and the transaction was recorded in.
+            'currency' => strtolower($transaction->currency),
             'success_url' => route('checkout.return', $transaction).'?session_id={CHECKOUT_SESSION_ID}',
             'cancel_url' => route('checkout.cancel', $transaction),
             'client_reference_id' => $transaction->reference,

@@ -2,23 +2,23 @@
 @section('title', 'Complete payment')
 @section('content')
   <div class="max-w-lg mx-auto text-center">
-    <div class="bg-white rounded-xl border border-slate-200 p-8">
-      <h1 class="text-xl font-semibold text-slate-900">Complete your payment</h1>
-      <p class="text-sm text-slate-500 mt-2">
+    <div class="card p-8 sm:p-10">
+      <h1 class="text-2xl font-semibold tracking-[-0.01em] text-forest">Complete your payment</h1>
+      <p class="text-sm text-stone-500 mt-2">
         The {{ ucfirst($gateway) }} window should open automatically.
       </p>
 
-      <div class="mt-6 text-left bg-slate-50 rounded-lg p-4 text-sm">
-        <div class="flex justify-between py-1"><span class="text-slate-500">Amount</span>
+      <div class="mt-6 text-left bg-cream rounded-[3px] p-4 text-sm">
+        <div class="flex justify-between py-1"><span class="text-stone-500">Amount</span>
           <span class="font-medium">{{ $transaction->amount_formatted }}</span></div>
-        <div class="flex justify-between py-1"><span class="text-slate-500">Reference</span>
+        <div class="flex justify-between py-1"><span class="text-stone-500">Reference</span>
           <span class="font-mono text-xs">{{ $transaction->reference }}</span></div>
       </div>
 
-      <button id="pay" class="mt-6 w-full rounded-lg bg-brand text-white py-2.5 text-sm font-medium hover:opacity-90">
+      <button id="pay" class="btn-primary mt-6 w-full">
         Open payment window
       </button>
-      <p class="mt-4 text-xs text-slate-500">
+      <p class="mt-4 text-xs text-stone-500">
         Closed it by accident? Click above to reopen — you have not been charged.
       </p>
     </div>

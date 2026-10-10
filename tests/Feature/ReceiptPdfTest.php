@@ -90,6 +90,39 @@ class ReceiptPdfTest extends TestCase
         $this->assertStringNotContainsString('font:14px/1.5 Helvetica', $html);
     }
 
+    public function test_the_header_puts_contact_under_the_address_and_registrations_on_the_right(): void
+    {
+        config([
+            'payments.org.pan' => 'AAETB1234C',
+            'payments.org.registration_80g' => 'AAETB1234CF20241',
+            'payments.org.registration_12a' => 'AAETB1234CE20242',
+            'payments.org.darpan_id' => 'UP/2024/0412345',
+        ]);
+
+        $html = app(ReceiptRenderer::class)->html($this->paidTransaction());
+        $header = substr($html, 0, strpos($html, 'Donation Receipt'));
+        [$left, $right] = explode('width:56%', $header, 2);
+
+        $this->assertLessThan(strpos($left, config('payments.org.phone')), strpos($left, config('payments.org.address')));
+        $this->assertStringContainsString(config('payments.org.email'), $left);
+        foreach (['PAN' => 'AAETB1234C', '80G Registration' => 'AAETB1234CF20241',
+            '12A Registration' => 'AAETB1234CE20242', 'NGO DARPAN ID' => 'UP/2024/0412345'] as $label => $id) {
+            $this->assertStringContainsString($label, $right);
+            $this->assertStringContainsString($id, $right);
+        }
+        $this->assertStringNotContainsString(config('payments.org.phone'), $right);
+    }
+
+    public function test_an_unset_registration_is_left_out_rather_than_printed_blank(): void
+    {
+        config(['payments.org.registration_12a' => '', 'payments.org.darpan_id' => '']);
+
+        $html = app(ReceiptRenderer::class)->html($this->paidTransaction());
+
+        $this->assertStringNotContainsString('12A Registration', $html);
+        $this->assertStringNotContainsString('NGO DARPAN ID', $html);
+    }
+
     public function test_a_dollar_receipt_renders(): void
     {
         Http::fake();

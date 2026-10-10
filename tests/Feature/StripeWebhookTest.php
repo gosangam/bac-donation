@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Notifications\DonorAccountCreated;
+use App\Payments\Gateways\StripeGateway;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -342,6 +343,24 @@ class StripeWebhookTest extends TestCase
         $transaction = Transaction::sole();
         $this->assertSame(User::where('email', 'kunj@example.com')->sole()->id, $transaction->user_id);
         $this->assertSame('one_off', $transaction->type);
+    }
+
+    public function test_a_subscription_checkout_charges_in_the_currency_the_donor_chose(): void
+    {
+        $plan = Plan::create([
+            'slug' => 'monthly', 'name' => 'Monthly', 'amount' => 50000, 'currency' => 'INR', 'amount_usd' => 600,
+            'interval' => 'monthly', 'interval_count' => 1, 'gateway_plan_ids' => ['stripe' => 'price_MULTI'],
+        ]);
+        $transaction = Transaction::create([
+            'gateway' => 'stripe', 'type' => 'subscription', 'reference' => 'BAC-USDSUB01',
+            'amount' => 600, 'currency' => 'USD', 'status' => 'pending',
+            'donor_name' => 'Maya', 'donor_email' => 'maya@example.com',
+        ]);
+        Http::fake(['api.stripe.com/v1/checkout/sessions' => Http::response(['id' => 'cs_test_USD', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_USD'])]);
+
+        (new StripeGateway)->startSubscription($transaction, $plan);
+
+        Http::assertSent(fn ($request) => $request['currency'] === 'usd' && $request['line_items'][0]['price'] === 'price_MULTI');
     }
 
     public function test_an_invoice_with_no_money_received_is_not_receipted(): void

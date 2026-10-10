@@ -55,6 +55,22 @@ class GatewayOfferingTest extends TestCase
             ->assertDontSee('name="gateway" value="razorpay"', false);
     }
 
+    public function test_stripe_is_offered_to_dollar_donors_only(): void
+    {
+        config(['payments.stripe.secret_key' => 'sk_test_x']);
+        $this->plan(['razorpay' => 'plan_x', 'stripe' => 'price_x']);
+
+        $this->get('/give/details?kind=plan&plan=monthly-500&currency=USD')
+            ->assertOk()
+            ->assertSee('name="gateway" value="stripe"', false);
+        $this->get('/give/details?kind=plan&plan=monthly-500&currency=INR')
+            ->assertOk()
+            ->assertDontSee('name="gateway" value="stripe"', false);
+        $this->get('/give/details?kind=one_off&amount=500&currency=INR')
+            ->assertOk()
+            ->assertDontSee('name="gateway" value="stripe"', false);
+    }
+
     /**
      * A gateway the plan was never created in cannot take a subscription — it
      * would throw at the hand-off, after the donor filled the whole form.

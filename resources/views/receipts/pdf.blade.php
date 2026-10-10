@@ -28,13 +28,19 @@
   }
   $ink = sprintf('#%02x%02x%02x', ...$rgb);
 
-  // Everything identifying the issuing organisation.
-  $issuer = array_filter([
+  // How to reach the organisation: printed under its address.
+  $contact = array_filter([
     'Phone' => $org['phone'],
     'Email' => $org['email'],
     'Website' => $org['website'],
+  ]);
+
+  // The organisation's tax and NGO registrations: the right of the header.
+  $registrations = array_filter([
     'PAN' => $org['pan'],
     '80G Registration' => $org['registration_80g'],
+    '12A Registration' => $org['registration_12a'] ?? null,
+    'NGO DARPAN ID' => $org['darpan_id'] ?? null,
   ]);
 
   // Everything identifying the donor.
@@ -80,10 +86,17 @@
           @if ($org['address'])
             <div style="margin-top:3px;font:9px/1.5 {!! $font !!};color:#57606a;">{{ $org['address'] }}</div>
           @endif
+          @if ($contact)
+            <div style="margin-top:4px;font:9px/1.5 {!! $font !!};color:#57606a;">
+              @foreach ($contact as $key => $val)
+                <div>{{ $key }}: <span style="color:#1f2328;">{{ $val }}</span></div>
+              @endforeach
+            </div>
+          @endif
         </td>
         <td style="width:56%;vertical-align:top;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            @foreach ($issuer as $key => $val)
+            @foreach ($registrations as $key => $val)
               <tr>
                 <td style="padding:2px 0;color:#57606a;font:9px/1.5 {!! $font !!};width:110px;">{{ $key }}</td>
                 <td style="padding:2px 0;color:#1f2328;font:600 9px/1.5 {!! $font !!};text-align:right;">{{ $val }}</td>

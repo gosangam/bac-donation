@@ -1,9 +1,10 @@
 @extends('layouts.app')
 @section('title', 'Your details')
 @section('content')
-  <div class="max-w-3xl">
-    <h1 class="text-2xl font-semibold text-slate-900 mb-1">Your details</h1>
-    <p class="text-sm text-slate-500 mb-8">
+  <div class="max-w-3xl mx-auto">
+    <span class="eyebrow">Step 2 of 3</span>
+    <h1 class="mt-4 text-3xl sm:text-4xl font-semibold tracking-[-0.02em] mb-3">Your details</h1>
+    <p class="text-[15px] leading-relaxed text-stone-600 mb-10">
       We need these before taking payment — they go on your 80G receipt and are passed to the payment
       provider so you are not asked twice.
       @guest
@@ -12,18 +13,18 @@
       @endguest
     </p>
 
-    <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6 flex items-center justify-between gap-4">
+    <div class="rounded-md bg-forest text-white p-6 mb-8 flex items-center justify-between gap-4">
       <div>
-        <div class="text-xs uppercase tracking-wide text-slate-500 font-medium">
+        <div class="text-xs uppercase tracking-wider text-lime font-semibold">
           {{ $plan ? 'Recurring plan' : 'One-off donation' }}
         </div>
-        <div class="text-xl font-semibold text-slate-900 mt-1">
+        <div class="text-3xl font-semibold tracking-[-0.02em] mt-2">
           {{ \App\Support\Money::format($amount, $currency) }}
-          @if ($plan)<span class="text-sm font-normal text-slate-500">/ {{ strtolower($plan->cadence) }}</span>@endif
+          @if ($plan)<span class="text-base font-normal text-white/60">/ {{ strtolower($plan->cadence) }}</span>@endif
         </div>
-        @if ($plan)<div class="text-sm text-slate-600 mt-0.5">{{ $plan->name }}</div>@endif
+        @if ($plan)<div class="text-sm text-white/70 mt-1">{{ $plan->name }}</div>@endif
       </div>
-      <a href="{{ route('checkout.choose') }}" class="text-sm text-slate-500 hover:text-slate-900 underline shrink-0">Change</a>
+      <a href="{{ route('checkout.choose') }}#give" class="text-sm text-white/70 hover:text-white underline underline-offset-4 shrink-0">Change</a>
     </div>
 
     <form method="POST" action="{{ route('checkout.start') }}" class="space-y-6">
@@ -33,8 +34,8 @@
       <input type="hidden" name="amount" value="{{ $amount }}">
       <input type="hidden" name="currency" value="{{ $currency }}">
 
-      <section class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold text-slate-900 mb-4">Contact</h2>
+      <section class="card p-6 sm:p-7">
+        <h2 class="text-lg font-semibold text-forest mb-5">Contact</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           @php
             $fields = [
@@ -45,9 +46,9 @@
           @endphp
           @foreach ($fields as [$field, $label, $type, $value])
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">{{ $label }}</label>
+              <label class="field-label">{{ $label }}</label>
               <input type="{{ $type }}" name="{{ $field }}" value="{{ old($field, $value) }}" required
-                     class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                     class="field">
               @error($field)<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
             </div>
           @endforeach
@@ -62,12 +63,12 @@
         $idType = old('id_type', $user->id_type);
         $idNumber = old('id_number', $user->id_number);
       @endphp
-      <section class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold text-slate-900 mb-1">
+      <section class="card p-6 sm:p-7">
+        <h2 class="text-lg font-semibold text-forest mb-1">
           Identity proof
-          @unless ($needsId)<span class="text-sm font-normal text-slate-400">(optional)</span>@endunless
+          @unless ($needsId)<span class="text-sm font-normal text-stone-400">(optional)</span>@endunless
         </h2>
-        <p class="text-xs text-slate-500 mb-4">
+        <p class="text-xs text-stone-500 mb-4">
           @if ($needsId)
             Required for donations in rupees, so your 80G receipt can be reported to the Income Tax Department.
           @else
@@ -85,18 +86,18 @@
         </div>
       </section>
 
-      <section class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold text-slate-900 mb-4">Address</h2>
+      <section class="card p-6 sm:p-7">
+        <h2 class="text-lg font-semibold text-forest mb-5">Address</h2>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Address line 1</label>
+            <label class="field-label">Address line 1</label>
             <input type="text" name="address_line1" value="{{ old('address_line1', $user->address_line1) }}" required
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                   class="field">
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Address line 2 <span class="text-slate-400">(optional)</span></label>
+            <label class="field-label">Address line 2 <span class="text-stone-400">(optional)</span></label>
             <input type="text" name="address_line2" value="{{ old('address_line2', $user->address_line2) }}"
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                   class="field">
           </div>
           <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             @php
@@ -108,15 +109,15 @@
             @endphp
             @foreach ($addr as [$field, $label, $value, $required])
               <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">{{ $label }}</label>
+                <label class="field-label">{{ $label }}</label>
                 <input type="text" name="{{ $field }}" value="{{ old($field, $value) }}" @if ($required) required @endif
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                       class="field">
               </div>
             @endforeach
             <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Country</label>
+              <label class="field-label">Country</label>
               <select name="country" required
-                      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
+                      class="field">
                 @foreach (['IN' => 'India', 'US' => 'United States', 'GB' => 'United Kingdom', 'AE' => 'UAE', 'AU' => 'Australia', 'CA' => 'Canada', 'SG' => 'Singapore'] as $code => $label)
                   <option value="{{ $code }}" @selected(old('country', $user->country ?? 'IN') === $code)>{{ $label }}</option>
                 @endforeach
@@ -124,18 +125,18 @@
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Purpose <span class="text-slate-400">(optional)</span></label>
+            <label class="field-label">Purpose <span class="text-stone-400">(optional)</span></label>
             <input type="text" name="purpose" value="{{ old('purpose', $plan?->name) }}" maxlength="120"
-                   placeholder="e.g. Cow feed fund"
-                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
-            <p class="text-xs text-slate-500 mt-1">Printed on your receipt.</p>
+                   placeholder="e.g. Dog rescue fund"
+                   class="field">
+            <p class="text-xs text-stone-500 mt-1">Printed on your receipt.</p>
           </div>
         </div>
       </section>
 
-      <section class="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 class="font-semibold text-slate-900 mb-1">Payment method</h2>
-        <p class="text-sm text-slate-500 mb-4">
+      <section class="card p-6 sm:p-7">
+        <h2 class="text-lg font-semibold text-forest mb-1">Payment method</h2>
+        <p class="text-sm text-stone-500 mb-4">
           Only methods that can take {{ $currency }} are shown.
         </p>
 
@@ -155,22 +156,22 @@
         @else
           <div class="grid sm:grid-cols-3 gap-3">
             @foreach ($gateways as $key => $gateway)
-              <label class="relative flex items-center gap-3 rounded-lg border border-slate-300 px-4 py-3 cursor-pointer hover:border-slate-900 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50">
+              <label class="relative flex items-center gap-3 rounded-[3px] border border-line bg-white px-4 py-3.5 cursor-pointer hover:border-forest has-[:checked]:border-forest has-[:checked]:bg-lime">
                 <input type="radio" name="gateway" value="{{ $key }}" required @checked($loop->first)
-                       class="text-slate-900 focus:ring-slate-400">
-                <span class="text-sm font-medium text-slate-900">{{ $gateway->displayName() }}</span>
+                       class="accent-moss">
+                <span class="text-sm font-medium text-forest">{{ $gateway->displayName() }}</span>
               </label>
             @endforeach
           </div>
         @endif
       </section>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
         <button @disabled(empty($gateways))
-                class="rounded-lg bg-brand text-white px-6 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed">
+                class="btn-primary">
           Continue to payment
         </button>
-        <span class="text-xs text-slate-500">You will not be charged until you confirm on the next screen.</span>
+        <span class="text-sm text-stone-500">You will not be charged until you confirm on the next screen.</span>
       </div>
     </form>
   </div>
