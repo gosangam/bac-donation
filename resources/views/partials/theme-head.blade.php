@@ -7,6 +7,11 @@
      ground with near-black ink. `soft` is a pale tint of the yellow for
      highlighted bands and the current nav item; `blush` a pale tint of the red
      that some sections fade down from, so the page is not one flat white. --}}
+{{-- Served from public/, not the logo URL: a favicon should not depend on
+     another site staying up. --}}
+<link rel="icon" href="{{ asset('favicon.ico') }}" sizes="32x32">
+<link rel="icon" type="image/png" href="{{ asset('favicon-32x32.png') }}" sizes="32x32">
+<link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
