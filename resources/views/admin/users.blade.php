@@ -4,7 +4,7 @@
   <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
     <h1 class="text-2xl font-semibold text-slate-900">Donors</h1>
     <a href="{{ route('admin.users.create') }}"
-       class="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium hover:bg-slate-800">New account</a>
+       class="rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-primary-dark">New account</a>
   </div>
   <div class="sm:hidden space-y-3">
     @foreach ($users as $user)

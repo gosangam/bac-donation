@@ -9,5 +9,5 @@
 @foreach ($nav as $route => $label)
   <a href="{{ route($route) }}"
      @if (request()->routeIs($route)) aria-current="page" @endif
-     class="rounded-md whitespace-nowrap {{ $block ? 'px-3 py-2.5' : 'px-3 py-2' }} {{ request()->routeIs($route) ? 'bg-lime text-forest font-medium' : 'text-stone-600 hover:text-forest' }}">{{ $label }}</a>
+     class="rounded-md whitespace-nowrap {{ $block ? 'px-3 py-2.5' : 'px-3 py-2' }} {{ request()->routeIs($route) ? 'bg-soft text-ink font-medium' : 'text-stone-600 hover:text-primary' }}">{{ $label }}</a>
 @endforeach

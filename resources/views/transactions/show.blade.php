@@ -3,13 +3,13 @@
 @section('content')
   <div class="max-w-2xl">
     @auth
-      <a href="{{ route('transactions.index') }}" class="text-sm text-stone-500 hover:text-forest">← All transactions</a>
+      <a href="{{ route('transactions.index') }}" class="text-sm text-stone-500 hover:text-primary">← All transactions</a>
     @endauth
 
     <div class="card mt-4">
       <div class="px-6 py-5 border-b border-line flex items-start justify-between gap-4">
         <div>
-          <div class="text-2xl font-semibold text-forest">{{ $txn->amount_formatted }}</div>
+          <div class="text-2xl font-semibold text-ink">{{ $txn->amount_formatted }}</div>
           <div class="text-sm text-stone-500 mt-1">{{ $txn->purpose }}</div>
         </div>
         @include('partials.status-badge', ['status' => $txn->status])
@@ -37,7 +37,7 @@
         @foreach ($rows as $label => $value)
           <div class="flex justify-between gap-6">
             <dt class="text-stone-500 shrink-0">{{ $label }}</dt>
-            <dd class="text-forest text-right break-all">{{ $value }}</dd>
+            <dd class="text-ink text-right break-all">{{ $value }}</dd>
           </div>
         @endforeach
       </dl>
@@ -59,7 +59,7 @@
           <a href="{{ route('transactions.receipt', $txn) }}"
              class="btn-primary">Download PDF receipt</a>
           <a href="{{ route('transactions.receipt.preview', $txn) }}" target="_blank"
-             class="text-sm text-stone-600 hover:text-forest underline">Preview</a>
+             class="text-sm text-stone-600 hover:text-primary underline">Preview</a>
         @else
           <div class="text-sm text-stone-500">
             <p>

@@ -34,7 +34,7 @@
       <div class="bg-white rounded-xl border border-slate-200 p-12 text-center">
         <p class="text-slate-500">No recurring donations yet.</p>
         <a href="{{ route('checkout.choose') }}"
-           class="inline-block mt-4 rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium hover:opacity-90">Start one</a>
+           class="inline-block mt-4 rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-primary-dark">Start one</a>
       </div>
     @endforelse
   </div>

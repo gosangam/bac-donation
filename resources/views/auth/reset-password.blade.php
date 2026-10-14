@@ -1,7 +1,7 @@
 @extends('layouts.guest')
 @section('title', 'Set password')
 @section('content')
-  <h2 class="text-2xl font-semibold tracking-[-0.01em] text-forest mb-1">Set your password</h2>
+  <h2 class="text-2xl font-semibold tracking-[-0.01em] text-ink mb-1">Set your password</h2>
   <p class="text-sm text-stone-500 mb-6">Choose a password to access your donations and receipts.</p>
 
   <form method="POST" action="{{ route('password.update') }}" class="space-y-4">
@@ -10,7 +10,7 @@
     <div>
       <label class="field-label">Email</label>
       <input type="email" name="email" value="{{ old('email', $email) }}" required readonly
-             class="w-full rounded-[3px] border border-line bg-cream px-3 py-2.5 text-sm text-stone-600">
+             class="w-full rounded-[3px] border border-line bg-stone-50 px-3 py-2.5 text-sm text-stone-600">
     </div>
     <div>
       <label class="field-label">New password</label>

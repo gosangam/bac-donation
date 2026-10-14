@@ -39,7 +39,7 @@
         </div>
       </div>
       <div class="pt-2">
-        <button class="rounded-lg bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800">Save</button>
+        <button class="rounded-lg bg-primary text-white px-5 py-2 text-sm font-medium hover:bg-primary-dark">Save</button>
       </div>
       <p class="text-xs text-slate-500">
         Editing these does not change receipts already issued — each receipt keeps the details as they

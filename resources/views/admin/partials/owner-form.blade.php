@@ -12,7 +12,7 @@
   <input id="{{ $id }}-email" type="email" name="email" value="{{ $current?->email }}" list="donor-emails"
          placeholder="Leave blank to unlink"
          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
-  <button class="w-full rounded-lg bg-slate-900 text-white px-3 py-2 text-sm font-medium">Save</button>
+  <button class="w-full rounded-lg bg-primary text-white px-3 py-2 text-sm font-medium">Save</button>
 </form>
 
 @once

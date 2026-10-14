@@ -1,7 +1,7 @@
 @extends('layouts.guest')
 @section('title', 'Create account')
 @section('content')
-  <h2 class="text-2xl font-semibold tracking-[-0.01em] text-forest mb-1">Create your account</h2>
+  <h2 class="text-2xl font-semibold tracking-[-0.01em] text-ink mb-1">Create your account</h2>
   <p class="text-sm text-stone-500 mb-6">You will add your address at checkout.</p>
 
   <form method="POST" action="{{ route('register') }}" class="space-y-4">
@@ -28,6 +28,6 @@
   </form>
 
   <p class="mt-6 text-center text-sm text-stone-500">
-    Already registered? <a href="{{ route('login') }}" class="text-forest font-medium hover:underline">Sign in</a>
+    Already registered? <a href="{{ route('login') }}" class="text-ink font-medium hover:underline">Sign in</a>
   </p>
 @endsection

@@ -77,7 +77,7 @@
       </div>
 
       <div class="pt-2">
-        <button class="rounded-lg bg-slate-900 text-white px-5 py-2 text-sm font-medium hover:bg-slate-800">
+        <button class="rounded-lg bg-primary text-white px-5 py-2 text-sm font-medium hover:bg-primary-dark">
           {{ $user->exists ? 'Save changes' : 'Create account' }}
         </button>
       </div>

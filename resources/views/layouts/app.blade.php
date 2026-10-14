@@ -7,10 +7,10 @@
   <title>@yield('title', 'Dashboard') · {{ config('payments.org.name') }}</title>
   @include('partials.theme-head')
 </head>
-<body class="min-h-full bg-cream font-sans text-forest antialiased">
+<body class="min-h-full bg-white font-sans text-ink antialiased">
 <div class="min-h-screen flex flex-col">
   @guest
-  <nav class="sticky top-0 z-40 border-b border-line/70 bg-cream/90 backdrop-blur">
+  <nav class="sticky top-0 z-40 border-b border-line/70 bg-white/90 backdrop-blur">
     <div class="mx-auto flex h-[84px] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
       <a href="{{ route('checkout.choose') }}" aria-label="{{ config('payments.org.name') }}"
          class="flex min-w-0 items-center gap-2.5">
@@ -19,14 +19,14 @@
       </a>
       @if (request()->routeIs('checkout.choose'))
         <div class="hidden items-center gap-8 text-[15px] text-stone-600 lg:flex">
-          <a href="#about" class="hover:text-forest">About</a>
-          <a href="#work" class="hover:text-forest">Our work</a>
-          <a href="#give" class="hover:text-forest">Donate</a>
-          <a href="#faq" class="hover:text-forest">FAQs</a>
+          <a href="#about" class="hover:text-primary">About</a>
+          <a href="#work" class="hover:text-primary">Our work</a>
+          <a href="#give" class="hover:text-primary">Donate</a>
+          <a href="#faq" class="hover:text-primary">FAQs</a>
         </div>
       @endif
       <div class="flex shrink-0 items-center gap-4 text-sm sm:gap-6">
-        <a href="{{ route('login') }}" class="whitespace-nowrap text-stone-600 hover:text-forest">
+        <a href="{{ route('login') }}" class="whitespace-nowrap text-stone-600 hover:text-primary">
           <span class="hidden sm:inline">My donations</span>
           <span class="sm:hidden">Sign in</span>
         </a>
@@ -39,7 +39,7 @@
   @auth
   {{-- Solid, not blurred: backdrop-filter would make this nav the containing
        block for the fixed mobile drawer inside it, trapping the drawer here. --}}
-  <nav class="sticky top-0 z-40 border-b border-line/70 bg-cream">
+  <nav class="sticky top-0 z-40 border-b border-line/70 bg-stone-50">
     <div class="max-w-6xl mx-auto px-4 sm:px-6">
       <div class="flex items-center gap-3 sm:gap-6 h-14 sm:h-16">
         <a href="{{ route(auth()->user()->is_admin ? 'admin.index' : 'dashboard') }}"

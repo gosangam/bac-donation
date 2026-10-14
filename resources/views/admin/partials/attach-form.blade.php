@@ -5,7 +5,7 @@
   @csrf
   <input type="text" name="{{ $name }}" required placeholder="{{ $placeholder }}" aria-label="{{ $placeholder }}"
          class="flex-1 sm:w-72 min-w-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-slate-400 focus:outline-none">
-  <button class="rounded-lg bg-slate-900 text-white px-3 py-1.5 text-sm font-medium hover:bg-slate-800">Link</button>
+  <button class="rounded-lg bg-primary text-white px-3 py-1.5 text-sm font-medium hover:bg-primary-dark">Link</button>
   @if ($hint)
     <span class="basis-full text-xs text-slate-500">{{ $hint }}</span>
   @endif

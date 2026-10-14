@@ -9,7 +9,7 @@
     'NGO DARPAN' => $org['darpan_id'] ?? null,
   ]);
 @endphp
-<footer class="mt-auto bg-forest text-white/80">
+<footer class="mt-auto bg-ink text-white/80">
   <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6">
     <div class="flex flex-col gap-8 border-b border-white/10 pb-10 md:flex-row md:items-start md:justify-between">
       <div class="max-w-sm">
@@ -21,13 +21,13 @@
       </div>
       <div class="flex flex-col gap-3 text-lg sm:flex-row sm:gap-8">
         @if ($org['email'])
-          <a href="mailto:{{ $org['email'] }}" class="inline-flex items-center gap-2.5 text-lime hover:underline">
+          <a href="mailto:{{ $org['email'] }}" class="inline-flex items-center gap-2.5 text-accent hover:underline">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
             {{ $org['email'] }}
           </a>
         @endif
         @if ($org['phone'])
-          <a href="tel:{{ preg_replace('/[^\d+]/', '', $org['phone']) }}" class="inline-flex items-center gap-2.5 text-lime hover:underline">
+          <a href="tel:{{ preg_replace('/[^\d+]/', '', $org['phone']) }}" class="inline-flex items-center gap-2.5 text-accent hover:underline">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>
             {{ $org['phone'] }}
           </a>

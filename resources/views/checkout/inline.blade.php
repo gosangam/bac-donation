@@ -3,12 +3,12 @@
 @section('content')
   <div class="max-w-lg mx-auto text-center">
     <div class="card p-8 sm:p-10">
-      <h1 class="text-2xl font-semibold tracking-[-0.01em] text-forest">Complete your payment</h1>
+      <h1 class="text-2xl font-semibold tracking-[-0.01em] text-ink">Complete your payment</h1>
       <p class="text-sm text-stone-500 mt-2">
         The {{ ucfirst($gateway) }} window should open automatically.
       </p>
 
-      <div class="mt-6 text-left bg-cream rounded-[3px] p-4 text-sm">
+      <div class="mt-6 text-left bg-stone-50 rounded-[3px] p-4 text-sm">
         <div class="flex justify-between py-1"><span class="text-stone-500">Amount</span>
           <span class="font-medium">{{ $transaction->amount_formatted }}</span></div>
         <div class="flex justify-between py-1"><span class="text-stone-500">Reference</span>

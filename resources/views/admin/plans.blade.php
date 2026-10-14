@@ -26,7 +26,7 @@
         <form method="POST" action="{{ route('admin.plans.update', $plan) }}" class="px-4 sm:px-5 pb-5 pt-2 border-t border-slate-100">
           @csrf @method('PUT')
           @include('admin.partials.plan-fields', ['plan' => $plan])
-          <button class="mt-4 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium">Save changes</button>
+          <button class="mt-4 rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium">Save changes</button>
         </form>
       </details>
     @empty
@@ -41,7 +41,7 @@
     <form method="POST" action="{{ route('admin.plans.store') }}">
       @csrf
       @include('admin.partials.plan-fields', ['plan' => null])
-      <button class="mt-4 rounded-lg bg-brand text-white px-4 py-2 text-sm font-medium">Create plan</button>
+      <button class="mt-4 rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium">Create plan</button>
     </form>
   </section>
 

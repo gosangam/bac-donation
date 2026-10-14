@@ -7,7 +7,7 @@
       <p class="text-sm text-slate-500 mt-1">Thank you for supporting the animals of Braj.</p>
     </div>
     <a href="{{ route('checkout.choose') }}"
-       class="rounded-lg bg-brand text-white px-4 py-2.5 text-sm font-medium hover:opacity-90 shrink-0">Give now</a>
+       class="rounded-lg bg-primary text-white px-4 py-2.5 text-sm font-medium hover:bg-primary-dark shrink-0">Give now</a>
   </div>
 
   @unless ($user->hasCompleteDonorProfile())

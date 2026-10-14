@@ -13,9 +13,9 @@
       @endguest
     </p>
 
-    <div class="rounded-md bg-forest text-white p-6 mb-8 flex items-center justify-between gap-4">
+    <div class="rounded-md bg-primary text-white p-6 mb-8 flex items-center justify-between gap-4">
       <div>
-        <div class="text-xs uppercase tracking-wider text-lime font-semibold">
+        <div class="text-xs uppercase tracking-wider text-accent font-semibold">
           {{ $plan ? 'Recurring plan' : 'One-time contribution' }}
         </div>
         <div class="text-3xl font-semibold tracking-[-0.02em] mt-2">
@@ -35,7 +35,7 @@
       <input type="hidden" name="currency" value="{{ $currency }}">
 
       <section class="card p-6 sm:p-7">
-        <h2 class="text-lg font-semibold text-forest mb-5">Contact</h2>
+        <h2 class="text-lg font-semibold text-ink mb-5">Contact</h2>
         <div class="grid sm:grid-cols-2 gap-4">
           @php
             $fields = [
@@ -64,7 +64,7 @@
         $idNumber = old('id_number', $user->id_number);
       @endphp
       <section class="card p-6 sm:p-7">
-        <h2 class="text-lg font-semibold text-forest mb-1">
+        <h2 class="text-lg font-semibold text-ink mb-1">
           Identity proof
           @unless ($needsId)<span class="text-sm font-normal text-stone-400">(optional)</span>@endunless
         </h2>
@@ -87,7 +87,7 @@
       </section>
 
       <section class="card p-6 sm:p-7">
-        <h2 class="text-lg font-semibold text-forest mb-5">Address</h2>
+        <h2 class="text-lg font-semibold text-ink mb-5">Address</h2>
         <div class="space-y-4">
           <div>
             <label class="field-label">Address line 1</label>
@@ -135,7 +135,7 @@
       </section>
 
       <section class="card p-6 sm:p-7">
-        <h2 class="text-lg font-semibold text-forest mb-1">Payment method</h2>
+        <h2 class="text-lg font-semibold text-ink mb-1">Payment method</h2>
         <p class="text-sm text-stone-500 mb-4">
           Only methods that can take {{ $currency }} are shown.
         </p>
@@ -156,10 +156,10 @@
         @else
           <div class="grid sm:grid-cols-3 gap-3">
             @foreach ($gateways as $key => $gateway)
-              <label class="relative flex items-center gap-3 rounded-[3px] border border-line bg-white px-4 py-3.5 cursor-pointer hover:border-forest has-[:checked]:border-forest has-[:checked]:bg-lime">
+              <label class="relative flex items-center gap-3 rounded-[3px] border border-line bg-white px-4 py-3.5 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-soft">
                 <input type="radio" name="gateway" value="{{ $key }}" required @checked($loop->first)
-                       class="accent-moss">
-                <span class="text-sm font-medium text-forest">{{ $gateway->displayName() }}</span>
+                       class="accent-primary">
+                <span class="text-sm font-medium text-ink">{{ $gateway->displayName() }}</span>
               </label>
             @endforeach
           </div>

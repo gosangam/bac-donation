@@ -49,15 +49,11 @@
 @section('landing')
   @guest
     {{-- ── Hero ─────────────────────────────────────────────────────────── --}}
-    <section class="relative overflow-hidden">
-      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div class="absolute -bottom-40 left-1/2 h-[520px] w-[1100px] -translate-x-1/2 rounded-[100%] bg-gradient-to-t from-[#cfe1a8] via-[#e9f2bf] to-transparent opacity-80 blur-2xl"></div>
-        <div class="absolute -right-24 top-24 h-72 w-72 rounded-full bg-lime/70 blur-3xl"></div>
-      </div>
+    <section class="relative border-b-[6px] border-accent bg-gradient-to-b from-blush to-white">
 
       <div class="relative mx-auto max-w-4xl px-4 pb-24 pt-16 text-center sm:px-6 sm:pb-32 sm:pt-24">
-        <p class="inline-flex items-center gap-2 rounded-full border border-line bg-white/70 px-4 py-1.5 text-sm text-forest">
-          <svg class="h-4 w-4 text-moss" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="10" r="2.2"/><circle cx="9.5" cy="5.5" r="2.2"/><circle cx="14.5" cy="5.5" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M12 10.5c3 0 6 4.2 6 6.7 0 2-1.6 2.8-3.2 2.3-1-.3-1.8-.7-2.8-.7s-1.8.4-2.8.7C7.6 20 6 19.2 6 17.2c0-2.5 3-6.7 6-6.7Z"/></svg>
+        <p class="inline-flex items-center gap-2 rounded-full border border-line bg-white/70 px-4 py-1.5 text-sm text-ink">
+          <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="10" r="2.2"/><circle cx="9.5" cy="5.5" r="2.2"/><circle cx="14.5" cy="5.5" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M12 10.5c3 0 6 4.2 6 6.7 0 2-1.6 2.8-3.2 2.3-1-.3-1.8-.7-2.8-.7s-1.8.4-2.8.7C7.6 20 6 19.2 6 17.2c0-2.5 3-6.7 6-6.7Z"/></svg>
           Vrindavan, Braj{{ $taxNote ? " · {$taxNote} registered" : '' }}
         </p>
 
@@ -66,16 +62,17 @@
         </h1>
         <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-stone-600">
           We rescue, treat and feed the street dogs and monkeys who share Braj with its pilgrims.
-          Give once or every month — <strong class="font-semibold text-forest">no account needed</strong>,
+          Give once or every month — <strong class="font-semibold text-ink">no account needed</strong>,
           and your receipt is emailed straight away.
         </p>
 
-        <div class="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="#give" class="btn-primary">Donate now</a>
-          <a href="#plans" class="btn-secondary">Give monthly</a>
+        {{-- Stacked full-width on phones, side by side from sm up. --}}
+        <div class="mx-auto mt-9 flex max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+          <a href="#plans" class="btn-primary">Become a regular donor</a>
+          <a href="#one-time" class="btn-secondary">Donate once</a>
         </div>
         <p class="mt-6 text-sm text-stone-500">
-          Given before? <a href="{{ route('login') }}" class="font-medium text-forest underline-offset-4 hover:underline">Sign in</a> to see your receipts.
+          Given before? <a href="{{ route('login') }}" class="font-medium text-ink underline-offset-4 hover:underline">Sign in</a> to see your receipts.
         </p>
       </div>
     </section>
@@ -102,7 +99,7 @@
     </section>
 
     {{-- ── Our work ─────────────────────────────────────────────────────── --}}
-    <section id="work" class="scroll-mt-20 bg-lime">
+    <section id="work" class="scroll-mt-20 bg-soft">
       <div class="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
         <div class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
@@ -117,7 +114,7 @@
         <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           @foreach ($work as [$title, $body, $icon])
             <article class="card flex flex-col p-6">
-              <span class="grid h-11 w-11 place-items-center rounded-[3px] bg-forest text-lime">
+              <span class="grid h-11 w-11 place-items-center rounded-[3px] bg-primary text-accent">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icon !!}</svg>
               </span>
               <h3 class="mt-8 text-lg font-semibold">{{ $title }}</h3>
@@ -130,7 +127,7 @@
   @endguest
 
   {{-- ── Give ───────────────────────────────────────────────────────────── --}}
-  <section id="give" class="scroll-mt-20">
+  <section id="give" class="scroll-mt-20 bg-gradient-to-b from-blush to-white">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
       @include('partials.flash')
 
@@ -146,7 +143,7 @@
           <div>
             <h1 class="text-3xl font-semibold tracking-[-0.02em]">Make a donation</h1>
             <p class="mt-2 text-stone-600">Give once, or set up a monthly gift that renews automatically.</p>
-            <a href="{{ route('dashboard') }}" class="mt-3 inline-block text-sm text-stone-600 underline underline-offset-4 hover:text-forest">Your dashboard</a>
+            <a href="{{ route('dashboard') }}" class="mt-3 inline-block text-sm text-stone-600 underline underline-offset-4 hover:text-primary">Your dashboard</a>
           </div>
         @endguest
 
@@ -158,7 +155,7 @@
             <button name="currency" value="{{ $code }}"
                     @if ($code === $currency) aria-current="true" @endif
                     class="rounded-[2px] px-4 py-2 text-sm font-semibold transition
-                           {{ $code === $currency ? 'bg-forest text-white' : 'text-stone-600 hover:text-forest' }}">
+                           {{ $code === $currency ? 'bg-primary text-white' : 'text-stone-600 hover:text-primary' }}">
               {{ $code === 'INR' ? '₹ INR' : '$ USD' }}
             </button>
           @endforeach
@@ -184,11 +181,11 @@
           <div class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             @foreach ($plans as $plan)
               <form method="GET" action="{{ route('checkout.details') }}"
-                    class="card group flex flex-col p-6 transition hover:-translate-y-0.5 hover:border-forest/40 hover:shadow-[0_12px_30px_-18px_rgba(19,42,19,.35)]">
+                    class="card group flex flex-col p-6 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_12px_30px_-18px_rgba(19,42,19,.35)]">
                 <input type="hidden" name="kind" value="plan">
                 <input type="hidden" name="plan" value="{{ $plan->slug }}">
                 <input type="hidden" name="currency" value="{{ $currency }}">
-                <div class="text-[15px] font-medium text-moss">{{ $plan->name }}</div>
+                <div class="text-[15px] font-medium text-primary">{{ $plan->name }}</div>
                 <div class="mt-5 text-4xl font-semibold tracking-[-0.02em]">{{ $plan->amountFormattedIn($currency) }}</div>
                 <div class="mt-1 text-sm text-stone-500">{{ $plan->cadence }}</div>
                 @if ($plan->description)
@@ -204,23 +201,23 @@
       </div>
 
       {{-- One-time --}}
-      <div class="mt-16 grid gap-8 rounded-md bg-forest p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
+      <div id="one-time" class="mt-16 scroll-mt-24 grid gap-8 rounded-md bg-primary p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
         <div>
-          <span class="eyebrow text-white before:bg-lime">One-time contribution</span>
+          <span class="eyebrow text-white before:bg-accent">One-time contribution</span>
           <h3 class="mt-4 text-2xl font-semibold leading-snug tracking-[-0.01em] sm:text-3xl">Give once, whenever you can</h3>
           <p class="mt-3 max-w-md text-[15px] leading-relaxed text-white/70">
             Every amount helps — a single gift can pay for a rescue, a course of treatment or a day of feeding.
           </p>
         </div>
 
-        <div class="rounded-md bg-white p-5 text-forest sm:p-6">
+        <div class="rounded-md bg-white p-5 text-ink sm:p-6">
           {{-- Presets are links, not buttons in the form below: as submit buttons
                they sent a second, empty "amount" alongside the custom field's,
                and Enter in that field submitted the first preset instead. --}}
           <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             @foreach ($presets as $preset)
               <a href="{{ route('checkout.details', ['kind' => 'one_off', 'currency' => $currency, 'amount' => \App\Support\Money::toDecimal($preset, $currency)]) }}"
-                 class="rounded-[3px] border border-line px-3 py-3 text-center text-sm font-semibold transition hover:border-forest hover:bg-lime">
+                 class="rounded-[3px] border border-line px-3 py-3 text-center text-sm font-semibold transition hover:border-primary hover:bg-soft">
                 {{ \App\Support\Money::format($preset, $currency) }}
               </a>
             @endforeach
@@ -260,7 +257,7 @@
         <div class="mt-12 grid gap-5 md:grid-cols-2">
           @foreach ($promises as [$big, $small, $body])
             <div class="card p-7">
-              <div class="text-[15px] font-medium text-moss">{{ ucfirst($small) }}</div>
+              <div class="text-[15px] font-medium text-primary">{{ ucfirst($small) }}</div>
               <div class="mt-6 text-4xl font-semibold tracking-[-0.02em]">{{ $big }}</div>
               <p class="mt-3 max-w-md text-[15px] leading-relaxed text-stone-600">{{ $body }}</p>
             </div>
@@ -294,9 +291,9 @@
 
     {{-- ── Closing call to action ───────────────────────────────────────── --}}
     <section class="mx-auto max-w-6xl px-4 pb-20 sm:px-6 md:pb-28">
-      <div class="relative overflow-hidden rounded-md bg-forest px-6 py-14 text-center sm:px-12 sm:py-20">
-        <div class="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-moss/60 blur-3xl" aria-hidden="true"></div>
-        <div class="pointer-events-none absolute -bottom-24 -right-16 h-72 w-72 rounded-full bg-lime/20 blur-3xl" aria-hidden="true"></div>
+      {{-- Mostly the logo red, deepening to the left, with the logo's yellow
+           only as a faint warm glow in the far corner. --}}
+      <div class="relative overflow-hidden rounded-md bg-[radial-gradient(circle_at_100%_100%,rgba(253,238,0,0.22),transparent_40%),linear-gradient(120deg,#C8141B_0%,#EC1C24_55%)] px-6 py-14 text-center sm:px-12 sm:py-20">
         <div class="relative">
           <h2 class="mx-auto max-w-2xl text-3xl font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[40px] sm:leading-[1.25]">
             Every animal on these streets deserves a second chance

@@ -6,7 +6,7 @@
   <title>@yield('title') · {{ config('payments.org.name') }}</title>
   @include('partials.theme-head')
 </head>
-<body class="min-h-full bg-cream font-sans text-forest antialiased">
+<body class="min-h-full bg-white font-sans text-ink antialiased">
   <div class="min-h-full flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
