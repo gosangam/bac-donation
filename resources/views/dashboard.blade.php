@@ -70,7 +70,7 @@
             <div class="font-medium text-slate-900">{{ $txn->amount_formatted }}</div>
             <div class="text-xs text-slate-500 mt-0.5 truncate">
               {{ $txn->created_at->format('d M Y') }} · {{ $txn->gateway_label }}
-              · {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-off' }}
+              · {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-time' }}
             </div>
           </div>
           <div class="flex items-center gap-3 shrink-0">

@@ -56,7 +56,7 @@
   // Everything identifying the donation itself.
   $donation = array_filter([
     'Purpose' => $txn->purpose,
-    'Donation type' => $txn->type === 'subscription' ? 'Recurring donation' : 'One-time donation',
+    'Donation type' => $txn->type === 'subscription' ? 'Recurring donation' : 'One-time contribution',
     'Payment method' => $txn->method ?: $txn->gateway_label,
     'Payment ID' => $txn->gateway_payment_id,
   ]);

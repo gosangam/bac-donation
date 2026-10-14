@@ -49,6 +49,22 @@ class GuestDonationTest extends TestCase
         $this->get('/give/details?kind=one_off&amount=500&currency=INR')->assertOk();
     }
 
+    public function test_a_preset_amount_opens_the_details_page_for_that_amount(): void
+    {
+        config(['payments.one_off.presets' => [50000, 100000, 250000, 500000]]);
+
+        // As submit buttons the presets shared a form with an empty custom
+        // amount field of the same name, which won and bounced the donor back.
+        $this->get('/')->assertSee(
+            e(route('checkout.details', ['kind' => 'one_off', 'currency' => 'INR', 'amount' => 500])),
+            false
+        );
+
+        $this->get(route('checkout.details', ['kind' => 'one_off', 'currency' => 'INR', 'amount' => 500]))
+            ->assertOk()
+            ->assertSee('₹500.00');
+    }
+
     public function test_no_page_in_the_giving_flow_requires_a_login(): void
     {
         foreach (['/', '/give/details?kind=one_off&amount=500&currency=INR', '/login', '/register',

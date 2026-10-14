@@ -26,7 +26,7 @@
   ];
 
   $promises = [
-    ['Receipt', 'in your inbox', 'A PDF receipt with our PAN'.($taxNote ? " and {$taxNote} registration" : '').' is emailed the moment your payment clears — for one-off gifts and every monthly renewal.'],
+    ['Receipt', 'in your inbox', 'A PDF receipt with our PAN'.($taxNote ? " and {$taxNote} registration" : '').' is emailed the moment your payment clears — for one-time contributions and every monthly renewal.'],
     ['No account', 'needed to give', 'Give as a guest. We set up a donor account for your email afterwards so every receipt stays in one place.'],
     ['Secure', 'payments', 'Payments go through Razorpay, Stripe or PayPal. Your card details never reach us.'],
     ['Cancel', 'any time', 'Monthly gifts can be cancelled from your donor dashboard whenever you like, with no questions asked.'],
@@ -176,8 +176,8 @@
               No plans are priced in {{ $currency }} yet. An administrator can add a
               {{ $currency }} amount under Admin → Plans.
             @else
-              Monthly giving isn't available in {{ $currency }} just now — a one-off
-              donation below works perfectly.
+              Monthly giving isn't available in {{ $currency }} just now — a one-time
+              contribution below works perfectly.
             @endauth
           </div>
         @else
@@ -203,36 +203,40 @@
         @endif
       </div>
 
-      {{-- One-off --}}
+      {{-- One-time --}}
       <div class="mt-16 grid gap-8 rounded-md bg-forest p-6 text-white sm:p-10 lg:grid-cols-[1fr_1.2fr] lg:items-center">
         <div>
-          <span class="eyebrow text-white before:bg-lime">One-off gift</span>
+          <span class="eyebrow text-white before:bg-lime">One-time contribution</span>
           <h3 class="mt-4 text-2xl font-semibold leading-snug tracking-[-0.01em] sm:text-3xl">Give once, whenever you can</h3>
           <p class="mt-3 max-w-md text-[15px] leading-relaxed text-white/70">
             Every amount helps — a single gift can pay for a rescue, a course of treatment or a day of feeding.
           </p>
         </div>
 
-        <form method="GET" action="{{ route('checkout.details') }}" class="rounded-md bg-white p-5 text-forest sm:p-6">
-          <input type="hidden" name="kind" value="one_off">
-          <input type="hidden" name="currency" value="{{ $currency }}">
-
+        <div class="rounded-md bg-white p-5 text-forest sm:p-6">
+          {{-- Presets are links, not buttons in the form below: as submit buttons
+               they sent a second, empty "amount" alongside the custom field's,
+               and Enter in that field submitted the first preset instead. --}}
           <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
             @foreach ($presets as $preset)
-              <button type="submit" name="amount" value="{{ \App\Support\Money::toDecimal($preset, $currency) }}"
-                      class="rounded-[3px] border border-line px-3 py-3 text-sm font-semibold transition hover:border-forest hover:bg-lime">
+              <a href="{{ route('checkout.details', ['kind' => 'one_off', 'currency' => $currency, 'amount' => \App\Support\Money::toDecimal($preset, $currency)]) }}"
+                 class="rounded-[3px] border border-line px-3 py-3 text-center text-sm font-semibold transition hover:border-forest hover:bg-lime">
                 {{ \App\Support\Money::format($preset, $currency) }}
-              </button>
+              </a>
             @endforeach
           </div>
 
-          <label for="custom-amount" class="field-label mt-5">Or enter an amount</label>
-          <div class="flex gap-2">
-            <input id="custom-amount" type="number" name="amount" step="0.01" min="1"
-                   placeholder="{{ $currency === 'INR' ? '1000' : '25' }}" class="field flex-1">
-            <button class="btn-primary shrink-0">Continue</button>
-          </div>
-        </form>
+          <form method="GET" action="{{ route('checkout.details') }}">
+            <input type="hidden" name="kind" value="one_off">
+            <input type="hidden" name="currency" value="{{ $currency }}">
+            <label for="custom-amount" class="field-label mt-5">Or enter an amount</label>
+            <div class="flex gap-2">
+              <input id="custom-amount" type="number" name="amount" step="0.01" min="1" required
+                     placeholder="{{ $currency === 'INR' ? '1000' : '25' }}" class="field flex-1">
+              <button class="btn-primary shrink-0">Continue</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </section>

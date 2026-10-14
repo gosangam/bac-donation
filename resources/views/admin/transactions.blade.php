@@ -11,7 +11,7 @@
       <select name="{{ $name }}" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <option value="">All {{ $name }}</option>
         @foreach ($options as $option)
-          <option value="{{ $option }}" @selected(($filters[$name] ?? '') === $option)>{{ ucfirst(str_replace('_', '-', $option)) }}</option>
+          <option value="{{ $option }}" @selected(($filters[$name] ?? '') === $option)>{{ $option === 'one_off' ? 'One-time' : ucfirst($option) }}</option>
         @endforeach
       </select>
     @endforeach
@@ -39,7 +39,7 @@
         </div>
         <div class="text-xs text-slate-500 mt-2 break-all">
           {{ $txn->created_at->format('d M Y') }} · {{ $txn->gateway_label }} ·
-          {{ $txn->type === 'subscription' ? 'Auto' : 'One-off' }} ·
+          {{ $txn->type === 'subscription' ? 'Auto' : 'One-time' }} ·
           {{ $txn->receipt_no ?? 'no receipt' }}
         </div>
         <div class="text-xs text-slate-500 mt-2">Account: {{ $txn->user?->email ?? 'not linked' }}</div>
@@ -99,7 +99,7 @@
             </td>
             <td class="px-4 py-3 font-mono text-xs">{{ $txn->receipt_no ?? '—' }}</td>
             <td class="px-4 py-3">{{ $txn->gateway_label }}</td>
-            <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto' : 'One-off' }}</td>
+            <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto' : 'One-time' }}</td>
             <td class="px-4 py-3 text-right font-medium whitespace-nowrap">{{ $txn->amount_formatted }}</td>
             <td class="px-4 py-3">@include('partials.status-badge', ['status' => $txn->status])</td>
             <td class="px-4 py-3">

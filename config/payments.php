@@ -6,7 +6,7 @@ return [
         'email' => env('ORG_EMAIL', 'brajanimalcare@gmail.com'),
         'phone' => env('ORG_PHONE', '+91 89237 37924'),
         'website' => env('ORG_WEBSITE', 'https://www.brajanimalcare.com'),
-        'address' => env('ORG_ADDRESS', 'Bhakti Dhama, behind Iskcon Temple Gali, Raman Reiti, Vrindavan, Mathura, Uttar Pradesh 281121'),
+        'address' => env('ORG_ADDRESS', 'Shanti Kutir, Radharaman Ji, Vrindavan, Mathura, Uttar Pradesh 281121'),
         'logo_url' => env('ORG_LOGO_URL', 'https://www.shriradharaman.com/api/media/file/bac-logo.jpeg'),
         'brand_color' => env('ORG_BRAND_COLOR', '#f31824'),
         'pan' => env('ORG_PAN', ''),

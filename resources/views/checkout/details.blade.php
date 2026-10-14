@@ -16,7 +16,7 @@
     <div class="rounded-md bg-forest text-white p-6 mb-8 flex items-center justify-between gap-4">
       <div>
         <div class="text-xs uppercase tracking-wider text-lime font-semibold">
-          {{ $plan ? 'Recurring plan' : 'One-off donation' }}
+          {{ $plan ? 'Recurring plan' : 'One-time contribution' }}
         </div>
         <div class="text-3xl font-semibold tracking-[-0.02em] mt-2">
           {{ \App\Support\Money::format($amount, $currency) }}

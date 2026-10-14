@@ -22,7 +22,7 @@
             'Reference' => $txn->reference,
             'Date' => $txn->created_at->format('d M Y, g:i a'),
             'Paid at' => $txn->paid_at?->format('d M Y, g:i a') ?? '—',
-            'Type' => $txn->type === 'subscription' ? 'Automatic renewal' : 'One-off donation',
+            'Type' => $txn->type === 'subscription' ? 'Automatic renewal' : 'One-time contribution',
             'Method' => $txn->method ?? $txn->gateway_label,
             'Gateway' => $txn->gateway_label,
             'Gateway payment id' => $txn->gateway_payment_id ?? '—',

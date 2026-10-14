@@ -81,7 +81,7 @@
             <div class="font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
             <div class="text-xs text-slate-500 mt-0.5">
               {{ $txn->created_at->format('d M Y') }} ·
-              {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-off' }} · {{ $txn->gateway_label }}
+              {{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-time' }} · {{ $txn->gateway_label }}
             </div>
           </div>
           @include('partials.status-badge', ['status' => $txn->status])
@@ -113,7 +113,7 @@
           <tr class="border-t border-slate-100">
             <td class="px-4 py-3 whitespace-nowrap">{{ $txn->created_at->format('d M Y') }}</td>
             <td class="px-4 py-3 font-mono text-xs">{{ $txn->receipt_no ?? '—' }}</td>
-            <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-off' }}</td>
+            <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-time' }}</td>
             <td class="px-4 py-3">{{ $txn->gateway_label }}</td>
             <td class="px-4 py-3 text-right font-medium whitespace-nowrap">{{ $txn->amount_formatted }}</td>
             <td class="px-4 py-3">@include('partials.status-badge', ['status' => $txn->status])</td>
