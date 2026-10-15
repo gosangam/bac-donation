@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\Transaction;
+use App\Models\User;
 use App\Payments\GatewayManager;
-use App\Services\PaymentRecorder;
-use App\Support\GuestCheckout;
 use App\Rules\IdentityNumber;
+use App\Services\PaymentRecorder;
 use App\Support\Currency;
+use App\Support\GuestCheckout;
 use App\Support\IdentityProof;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -81,7 +83,7 @@ class CheckoutController extends Controller
         return view('checkout.details', [
             // A guest has nothing to prefill from; a blank model keeps the view
             // free of null checks on every field.
-            'user' => $request->user() ?? new \App\Models\User,
+            'user' => $request->user() ?? new User,
             'plan' => $plan,
             'amount' => $amount,
             'currency' => $currency,
@@ -141,12 +143,18 @@ class CheckoutController extends Controller
                 new IdentityNumber($request->input('id_type')),
             ],
             'purpose' => ['nullable', 'string', 'max:120'],
+            'dedication_type' => ['nullable', Rule::in(array_keys(Transaction::DEDICATION_TYPES))],
+            'dedication_name' => ['nullable', 'required_with:dedication_type', 'string', 'max:255'],
+            'donor_message' => ['nullable', 'string', 'max:1000'],
         ], [
+            'dedication_name.required_with' => 'Enter the name of the person this donation is for.',
             'id_type.required' => 'Choose an identity proof — it is required for donations in rupees.',
             'id_number.required' => 'Enter your :attribute so an 80G receipt can be issued.',
         ], [
             'id_type' => 'identity proof',
             'id_number' => 'identity number',
+            'dedication_name' => 'name',
+            'donor_message' => 'message',
         ]);
 
         // Stored without the spaces and hyphens donors type.
@@ -228,6 +236,10 @@ class CheckoutController extends Controller
             'donor_address' => $address,
             'donor_id_type' => $data['id_type'] ?? null,
             'donor_id_number' => $data['id_number'] ?? null,
+            // A name with no type honours no one, so it is not kept on its own.
+            'dedication_type' => filled($data['dedication_type'] ?? null) ? $data['dedication_type'] : null,
+            'dedication_name' => filled($data['dedication_type'] ?? null) ? $data['dedication_name'] : null,
+            'donor_message' => ($data['donor_message'] ?? null) ?: null,
         ]);
 
         try {
@@ -246,7 +258,7 @@ class CheckoutController extends Controller
 
         if ($plan) {
             $transaction->subscription()->associate(
-                \App\Models\Subscription::create([
+                Subscription::create([
                     'user_id' => $user?->id,
                     'plan_id' => $plan->id,
                     'gateway' => $gateway->key(),

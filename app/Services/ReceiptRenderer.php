@@ -30,8 +30,12 @@ class ReceiptRenderer
      * @param  bool  $embedLogo  True for PDF, where the image must travel inside
      *                           the document. HTML keeps the remote URL, since
      *                           several mail clients refuse to show data URIs.
+     * @param  'standard'|'masked'|'full'  $identity  How the donor's ID number is
+     *                                                printed; only an admin
+     *                                                download asks for other
+     *                                                than 'standard'.
      */
-    public function html(Transaction $transaction, bool $embedLogo = false): string
+    public function html(Transaction $transaction, bool $embedLogo = false, string $identity = 'standard'): string
     {
         $org = config('payments.org');
 
@@ -42,10 +46,12 @@ class ReceiptRenderer
         return view('receipts.pdf', [
             'txn' => $transaction,
             'org' => $org,
+            'identity' => $identity,
         ])->render();
     }
 
-    public function pdf(Transaction $transaction): string
+    /** @param  'standard'|'masked'|'full'  $identity */
+    public function pdf(Transaction $transaction, string $identity = 'standard'): string
     {
         $options = new Options;
         // No network access from the renderer. Everything it needs is already
@@ -67,7 +73,7 @@ class ReceiptRenderer
 
         $dompdf = new Dompdf($options);
         $dompdf->setPaper('A4', 'portrait');
-        $dompdf->loadHtml($this->html($transaction, embedLogo: true), 'UTF-8');
+        $dompdf->loadHtml($this->html($transaction, embedLogo: true, identity: $identity), 'UTF-8');
         $dompdf->render();
 
         return $dompdf->output();

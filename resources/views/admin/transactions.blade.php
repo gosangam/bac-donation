@@ -23,7 +23,8 @@
 
   <div class="sm:hidden space-y-3">
     @forelse ($transactions as $txn)
-      <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-slate-300"
+           data-href="{{ route('admin.transactions.show', $txn) }}">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="flex items-center gap-1 min-w-0">
@@ -40,7 +41,7 @@
         <div class="text-xs text-slate-500 mt-2 break-all">
           {{ $txn->created_at->format('d M Y') }} · {{ $txn->gateway_label }} ·
           {{ $txn->type === 'subscription' ? 'Auto' : 'One-time' }} ·
-          {{ $txn->receipt_no ?? 'no receipt' }}
+          <a href="{{ route('admin.transactions.show', $txn) }}" class="underline">{{ $txn->receipt_no ?? 'details' }}</a>
         </div>
         <div class="text-xs text-slate-500 mt-2">Account: {{ $txn->user?->email ?? 'not linked' }}</div>
         @include('admin.partials.owner-form', [
@@ -49,8 +50,8 @@
           'current' => $txn->user,
         ])
         @if ($txn->isPaid())
-          <div class="flex items-center gap-4 mt-3 text-sm">
-            <a href="{{ route('admin.receipt', $txn) }}" class="text-slate-900 font-medium underline">PDF</a>
+          <div class="flex items-start gap-4 mt-3 text-sm">
+            @include('admin.partials.receipt-download', ['txn' => $txn])
             <form method="POST" action="{{ route('admin.receipt.resend', $txn) }}">@csrf
               <button class="text-slate-600 underline">Resend</button>
             </form>
@@ -75,7 +76,8 @@
       </thead>
       <tbody>
         @forelse ($transactions as $txn)
-          <tr class="border-t border-slate-100 hover:bg-slate-50">
+          <tr class="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+              data-href="{{ route('admin.transactions.show', $txn) }}">
             <td class="px-4 py-3 whitespace-nowrap">{{ $txn->created_at->format('d M Y') }}</td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-1">
@@ -97,7 +99,9 @@
                 'current' => $txn->user,
               ])
             </td>
-            <td class="px-4 py-3 font-mono text-xs">{{ $txn->receipt_no ?? '—' }}</td>
+            <td class="px-4 py-3 font-mono text-xs">
+              <a href="{{ route('admin.transactions.show', $txn) }}" class="hover:underline">{{ $txn->receipt_no ?? 'View' }}</a>
+            </td>
             <td class="px-4 py-3">{{ $txn->gateway_label }}</td>
             <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto' : 'One-time' }}</td>
             <td class="px-4 py-3 text-right font-medium whitespace-nowrap">{{ $txn->amount_formatted }}</td>
@@ -115,11 +119,13 @@
             </td>
             <td class="px-4 py-3 text-right whitespace-nowrap">
               @if ($txn->isPaid())
-                <a href="{{ route('admin.receipt', $txn) }}" class="text-slate-900 font-medium hover:underline">PDF</a>
-                <form method="POST" action="{{ route('admin.receipt.resend', $txn) }}" class="inline">
-                  @csrf
-                  <button class="ml-3 text-slate-600 hover:text-slate-900 underline">Resend</button>
-                </form>
+                <div class="flex items-start justify-end gap-3">
+                  @include('admin.partials.receipt-download', ['txn' => $txn])
+                  <form method="POST" action="{{ route('admin.receipt.resend', $txn) }}">
+                    @csrf
+                    <button class="text-slate-600 hover:text-slate-900 underline">Resend</button>
+                  </form>
+                </div>
               @endif
             </td>
           </tr>
@@ -131,4 +137,5 @@
   </div>
 
   <div class="mt-4">{{ $transactions->links() }}</div>
+  @include('admin.partials.row-links')
 @endsection

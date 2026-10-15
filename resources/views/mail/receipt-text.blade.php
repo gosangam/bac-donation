@@ -8,6 +8,8 @@ Receipt No.: {{ $txn->receipt_no }}
 Date: {{ optional($txn->paid_at ?? $txn->created_at)->timezone('Asia/Kolkata')->format('d M Y, g:i a') }} IST
 @if ($txn->purpose)Purpose: {{ $txn->purpose }}
 @endif
+@if ($txn->dedication){{ $txn->dedication }}
+@endif
 Donation type: {{ $txn->type === 'subscription' ? 'Recurring donation' : 'One-time contribution' }}
 Payment method: {{ $txn->method ?: $txn->gateway_label }}
 

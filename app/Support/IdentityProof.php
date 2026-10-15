@@ -127,6 +127,37 @@ class IdentityProof
         return 'XXXX XXXX '.substr(self::normalise($value), -4);
     }
 
+    /**
+     * Every type hidden but its last four characters, for screens where an
+     * admin has to opt in to seeing a number rather than opt out.
+     */
+    public static function masked(?string $type, ?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $value = self::normalise($value);
+
+        if ($type === 'aadhaar') {
+            return 'XXXX XXXX '.substr($value, -4);
+        }
+
+        return str_repeat('X', max(strlen($value) - 4, 0)).substr($value, -4);
+    }
+
+    /** The whole number, with Aadhaar grouped in fours as it is printed on the card. */
+    public static function full(?string $type, ?string $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        $value = self::normalise($value);
+
+        return $type === 'aadhaar' ? trim(chunk_split($value, 4, ' ')) : $value;
+    }
+
     /** "Aadhaar No. XXXX XXXX 9012", or null when there is nothing to show. */
     public static function describe(?string $type, ?string $value): ?string
     {

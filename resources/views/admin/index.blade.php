@@ -42,7 +42,8 @@
         <a href="{{ route('admin.transactions') }}" class="text-sm text-slate-500 hover:text-slate-900">All</a>
       </div>
       @forelse ($recent as $txn)
-        <div class="px-5 py-3 border-b border-slate-100 last:border-0 flex items-center justify-between gap-3 text-sm">
+        <a href="{{ route('admin.transactions.show', $txn) }}"
+           class="px-5 py-3 border-b border-slate-100 last:border-0 flex items-center justify-between gap-3 text-sm hover:bg-slate-50">
           <div class="min-w-0">
             <div class="font-medium text-slate-900 truncate">{{ $txn->donor_name }}</div>
             <div class="text-xs text-slate-500">{{ $txn->created_at->format('d M, g:i a') }} · {{ $txn->gateway_label }}</div>
@@ -51,7 +52,7 @@
             <span class="font-medium">{{ $txn->amount_formatted }}</span>
             @include('partials.status-badge', ['status' => $txn->status])
           </div>
-        </div>
+        </a>
       @empty
         <p class="px-5 py-8 text-center text-sm text-slate-500">Nothing yet.</p>
       @endforelse

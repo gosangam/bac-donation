@@ -134,6 +134,44 @@
         </div>
       </section>
 
+      {{-- Dedication and message. The donor stays the payer and the receipt
+           stays in their name; this records whom the gift honours. --}}
+      @php $dedicationType = old('dedication_type', ''); @endphp
+      <section class="card p-6 sm:p-7" data-dedication>
+        <h2 class="text-lg font-semibold text-ink mb-1">
+          Dedicate this donation <span class="text-sm font-normal text-stone-400">(optional)</span>
+        </h2>
+        <p class="text-xs text-stone-500 mb-4">Give on someone's behalf or in their memory. Their name is printed on your receipt.</p>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          @foreach (['' => 'No dedication'] + \App\Models\Transaction::DEDICATION_TYPES as $value => $label)
+            <label class="flex items-center gap-3 rounded-[3px] border border-line bg-white px-4 py-3 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-soft">
+              <input type="radio" name="dedication_type" value="{{ $value }}" class="accent-primary"
+                     @checked($dedicationType === $value)>
+              <span class="text-sm font-medium text-ink">{{ $label }}</span>
+            </label>
+          @endforeach
+        </div>
+
+        <div class="mt-4" data-dedication-name @if ($dedicationType === '') hidden @endif>
+          <label for="dedication_name" class="field-label">
+            <span data-dedication-label>{{ \App\Models\Transaction::DEDICATION_TYPES[$dedicationType] ?? 'Name' }}</span>
+          </label>
+          <input id="dedication_name" type="text" name="dedication_name" value="{{ old('dedication_name') }}"
+                 maxlength="255" placeholder="Their full name" class="field"
+                 @if ($dedicationType !== '') required @endif>
+          @error('dedication_name')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+        </div>
+
+        <div class="mt-5">
+          <label for="donor_message" class="field-label">Note or message <span class="text-stone-400">(optional)</span></label>
+          <textarea id="donor_message" name="donor_message" rows="3" maxlength="1000" class="field"
+                    placeholder="Anything you'd like us to know — a wish for the animals, or how you'd like the gift used">{{ old('donor_message') }}</textarea>
+          @error('donor_message')<p class="text-xs text-red-600 mt-1">{{ $message }}</p>@enderror
+          <p class="text-xs text-stone-500 mt-1">Read by our team. Not printed on the receipt.</p>
+        </div>
+      </section>
+
       <section class="card p-6 sm:p-7">
         <h2 class="text-lg font-semibold text-ink mb-1">Payment method</h2>
         <p class="text-sm text-stone-500 mb-4">
@@ -176,4 +214,29 @@
     </form>
   </div>
 
+  @push('scripts')
+  <script>
+  (function () {
+    var section = document.querySelector('[data-dedication]');
+    if (!section) return;
+
+    var nameRow = section.querySelector('[data-dedication-name]');
+    var nameInput = nameRow.querySelector('input');
+    var label = section.querySelector('[data-dedication-label]');
+    var wording = @json(\App\Models\Transaction::DEDICATION_TYPES);
+
+    section.addEventListener('change', function (event) {
+      if (event.target.name !== 'dedication_type') return;
+
+      var type = event.target.value;
+      nameRow.hidden = type === '';
+      nameInput.required = type !== '';
+      if (type !== '') {
+        label.textContent = wording[type];
+        nameInput.focus();
+      }
+    });
+  })();
+  </script>
+  @endpush
 @endsection

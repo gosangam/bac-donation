@@ -8,8 +8,18 @@
      DejaVu Sans and fall through to Helvetica, which is fine there.
 
      Structure: issuer at the top, donor and donation in the body, the
-     no-signature declaration at the foot — the order a receipt is read in. --}}
+     no-signature declaration at the foot — the order a receipt is read in.
+
+     $identity picks how the donor's ID number is printed: 'standard' for the
+     receipt donors get (Aadhaar masked, as UIDAI requires), or, for an admin
+     download, 'masked' (every type masked) or 'full'. --}}
 @php
+  $identity ??= 'standard';
+  $idShown = match ($identity) {
+      'full' => \App\Support\IdentityProof::full($txn->donor_id_type, $txn->donor_id_number),
+      'masked' => \App\Support\IdentityProof::masked($txn->donor_id_type, $txn->donor_id_number),
+      default => \App\Support\IdentityProof::forDisplay($txn->donor_id_type, $txn->donor_id_number),
+  };
   // Emitted with {!! !!}: this is a fixed literal defined right here, and
   // escaping it turns the quotes into &#039; in every style attribute.
   $font = "'DejaVu Sans',Helvetica,Arial,sans-serif";
@@ -50,12 +60,14 @@
     'Phone' => $txn->donor_phone,
     'Address' => $txn->donor_address,
     \App\Support\IdentityProof::label($txn->donor_id_type) ?: 'Identity proof'
-        => \App\Support\IdentityProof::forDisplay($txn->donor_id_type, $txn->donor_id_number),
+        => $idShown,
   ]);
 
   // Everything identifying the donation itself.
   $donation = array_filter([
     'Purpose' => $txn->purpose,
+    \App\Models\Transaction::DEDICATION_TYPES[$txn->dedication_type] ?? 'Dedication'
+        => $txn->dedication ? $txn->dedication_name : null,
     'Donation type' => $txn->type === 'subscription' ? 'Recurring donation' : 'One-time contribution',
     'Payment method' => $txn->method ?: $txn->gateway_label,
     'Payment ID' => $txn->gateway_payment_id,

@@ -9,7 +9,6 @@ use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Payments\GatewayManager;
-use App\Services\ReceiptRenderer;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -223,15 +222,5 @@ class AdminController extends Controller
         SendDonationReceipt::dispatch($transaction);
 
         return back()->with('status', "Receipt {$transaction->receipt_no} queued for {$transaction->donor_email}.");
-    }
-
-    public function receipt(Transaction $transaction, ReceiptRenderer $renderer)
-    {
-        abort_unless($transaction->isPaid(), 404);
-
-        return response($renderer->pdf($transaction), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$renderer->filename($transaction).'"',
-        ]);
     }
 }

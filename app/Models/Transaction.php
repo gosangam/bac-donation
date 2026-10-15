@@ -20,6 +20,12 @@ class Transaction extends Model
         'gateway_synced_at' => 'datetime',
     ];
 
+    /** @var array<string, string> Whom a gift can honour, as worded on the receipt. */
+    public const DEDICATION_TYPES = [
+        'on_behalf' => 'On behalf of',
+        'in_memory' => 'In memory of',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -83,6 +89,16 @@ class Transaction extends Model
     public function getAmountFormattedAttribute(): string
     {
         return Money::format($this->amount, $this->currency);
+    }
+
+    /** "In memory of Radha Sharma", or null for a gift that honours no one. */
+    public function getDedicationAttribute(): ?string
+    {
+        $wording = self::DEDICATION_TYPES[$this->dedication_type] ?? null;
+
+        return $wording && filled($this->dedication_name)
+            ? $wording.' '.$this->dedication_name
+            : null;
     }
 
     public function getGatewayLabelAttribute(): string

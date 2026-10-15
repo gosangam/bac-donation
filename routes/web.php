@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\OwnershipController;
+use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckoutController;
@@ -81,7 +82,11 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('index');
     Route::get('/transactions', [AdminController::class, 'transactions'])->name('transactions');
-    Route::get('/transactions/{transaction}/receipt', [AdminController::class, 'receipt'])->name('receipt');
+    Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])->name('transactions.show');
+    // POST, so revealing a donor's ID is never a link a browser could prefetch.
+    Route::post('/transactions/{transaction}/reveal-id', [AdminTransactionController::class, 'revealIdentity'])
+        ->name('transactions.reveal-id');
+    Route::get('/transactions/{transaction}/receipt', [AdminTransactionController::class, 'receipt'])->name('receipt');
     Route::post('/transactions/{transaction}/resend', [AdminController::class, 'resendReceipt'])->name('receipt.resend');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     // Before /users/{user}, or "create" would be read as a user id.

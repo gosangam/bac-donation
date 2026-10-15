@@ -75,7 +75,8 @@
   </div>
   <div class="sm:hidden space-y-3">
     @forelse ($transactions as $txn)
-      <div class="bg-white rounded-xl border border-slate-200 p-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4 cursor-pointer hover:border-slate-300"
+           data-href="{{ route('admin.transactions.show', $txn) }}">
         <div class="flex items-start justify-between gap-3">
           <div>
             <div class="font-semibold text-slate-900">{{ $txn->amount_formatted }}</div>
@@ -86,10 +87,9 @@
           </div>
           @include('partials.status-badge', ['status' => $txn->status])
         </div>
-        <div class="text-xs text-slate-500 mt-2 break-all">{{ $txn->receipt_no ?? 'no receipt' }}</div>
+        <a href="{{ route('admin.transactions.show', $txn) }}" class="block text-xs text-slate-500 mt-2 break-all underline">{{ $txn->receipt_no ?? 'details' }}</a>
         @if ($txn->isPaid())
-          <a href="{{ route('admin.receipt', $txn) }}"
-             class="inline-block mt-3 text-sm text-slate-900 font-medium underline">PDF</a>
+          <div class="mt-3 text-sm">@include('admin.partials.receipt-download', ['txn' => $txn])</div>
         @endif
       </div>
     @empty
@@ -110,16 +110,19 @@
       </thead>
       <tbody>
         @forelse ($transactions as $txn)
-          <tr class="border-t border-slate-100">
+          <tr class="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+              data-href="{{ route('admin.transactions.show', $txn) }}">
             <td class="px-4 py-3 whitespace-nowrap">{{ $txn->created_at->format('d M Y') }}</td>
-            <td class="px-4 py-3 font-mono text-xs">{{ $txn->receipt_no ?? '—' }}</td>
+            <td class="px-4 py-3 font-mono text-xs">
+              <a href="{{ route('admin.transactions.show', $txn) }}" class="hover:underline">{{ $txn->receipt_no ?? 'View' }}</a>
+            </td>
             <td class="px-4 py-3">{{ $txn->type === 'subscription' ? 'Auto-debit' : 'One-time' }}</td>
             <td class="px-4 py-3">{{ $txn->gateway_label }}</td>
             <td class="px-4 py-3 text-right font-medium whitespace-nowrap">{{ $txn->amount_formatted }}</td>
             <td class="px-4 py-3">@include('partials.status-badge', ['status' => $txn->status])</td>
-            <td class="px-4 py-3 text-right">
+            <td class="px-4 py-3 text-right whitespace-nowrap">
               @if ($txn->isPaid())
-                <a href="{{ route('admin.receipt', $txn) }}" class="text-slate-900 font-medium hover:underline">PDF</a>
+                @include('admin.partials.receipt-download', ['txn' => $txn])
               @endif
             </td>
           </tr>
@@ -130,4 +133,5 @@
     </table>
   </div>
   <div class="mt-4">{{ $transactions->links() }}</div>
+  @include('admin.partials.row-links')
 @endsection

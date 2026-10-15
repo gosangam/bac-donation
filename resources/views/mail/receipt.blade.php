@@ -57,6 +57,8 @@
           'Receipt No.' => $txn->receipt_no,
           'Date' => optional($txn->paid_at ?? $txn->created_at)->timezone('Asia/Kolkata')->format('d M Y, g:i a').' IST',
           'Purpose' => $txn->purpose,
+          \App\Models\Transaction::DEDICATION_TYPES[$txn->dedication_type] ?? 'Dedication'
+              => $txn->dedication ? $txn->dedication_name : null,
           'Donation type' => $txn->type === 'subscription' ? 'Recurring donation' : 'One-time contribution',
           'Payment method' => $txn->method ?: $txn->gateway_label,
         ]);

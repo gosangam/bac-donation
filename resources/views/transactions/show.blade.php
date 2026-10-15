@@ -33,6 +33,14 @@
             \App\Support\IdentityProof::label($txn->donor_id_type) ?: 'Identity proof'
                 => \App\Support\IdentityProof::forDisplay($txn->donor_id_type, $txn->donor_id_number) ?? '—',
           ];
+
+          if ($txn->dedication) {
+            $rows[\App\Models\Transaction::DEDICATION_TYPES[$txn->dedication_type]] = $txn->dedication_name;
+          }
+
+          if ($txn->donor_message) {
+            $rows['Your message'] = $txn->donor_message;
+          }
         @endphp
         @foreach ($rows as $label => $value)
           <div class="flex justify-between gap-6">
